@@ -26,8 +26,7 @@ export default function ChatPage() {
     {
       id: '1',
       role: 'assistant',
-      content:
-        "Hi! I'm Seno Bot, your Reddit assistant. I can help you navigate Reddit, answer questions about communities, explain Reddit culture, and more. What would you like to know?",
+      content: "Hi! I'm Seno Bot, your Senopost assistant.",
     },
   ])
   const [input, setInput] = useState('')
@@ -124,9 +123,9 @@ export default function ChatPage() {
               <Bot className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-semibold">Snoo Bot</h1>
+              <h1 className="font-semibold">Seno Bot</h1>
               <p className="text-xs text-muted-foreground">
-                Your Reddit Assistant
+                Your Senopost Assistant
               </p>
             </div>
             <div className="ml-auto flex items-center gap-1 text-xs text-green-500">
@@ -239,7 +238,7 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask Snoo Bot anything..."
+              placeholder="Ask Seno Bot anything..."
               className="flex-1 rounded-full bg-secondary border-none"
               disabled={isTyping}
             />

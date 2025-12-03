@@ -1,7 +1,5 @@
 'use client'
 
-import { Header } from '@/components/header'
-import { Sidebar } from '@/components/sidebar'
 import { Comment } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,7 +15,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { BottomNav } from '@/components/bottom-nav'
 import { useState } from 'react'
 
 const mockPost = {
@@ -123,171 +120,164 @@ export default function PostPage(props: {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <div className="flex w-full">
-        <Sidebar />
-        <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4">
-          {/* Back Button */}
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="mb-4 gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Feed
-            </Button>
-          </Link>
+      <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4">
+        {/* Back Button */}
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="mb-4 gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Feed
+          </Button>
+        </Link>
 
-          {/* Post */}
-          <article className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-4">
-              {/* Post Header */}
-              <div className="flex items-center gap-2 mb-3">
-                <Link
-                  href={`/r/${subreddit}`}
-                  className="flex items-center gap-2 hover:underline"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-sm font-bold text-primary-foreground">
-                      {subreddit.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold">r/{subreddit}</span>
-                </Link>
-                <span className="text-sm text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">
-                  Posted by u/{mockPost.author}
-                </span>
-                <span className="text-sm text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">
-                  {mockPost.timeAgo}
-                </span>
-              </div>
-
-              {/* Post Title */}
-              <h1 className="text-xl font-bold mb-3">{mockPost.title}</h1>
-
-              {/* Post Content */}
-              <div className="prose prose-sm max-w-none mb-4">
-                {mockPost.content.split('\n\n').map((paragraph, index) => (
-                  <p key={index} className="mb-3 text-foreground">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-
-              {/* Post Image */}
-              {mockPost.imageUrl && (
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                  <Image
-                    src={mockPost.imageUrl || '/placeholder.svg'}
-                    alt={mockPost.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-
-              {/* Post Actions */}
-              <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <div className="flex items-center bg-secondary rounded-full">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 rounded-l-full hover:bg-upvote/20"
-                  >
-                    <ArrowBigUp className="h-5 w-5" />
-                  </Button>
-                  <span className="text-sm font-semibold min-w-[3rem] text-center">
-                    {(mockPost.upvotes / 1000).toFixed(1)}k
+        {/* Post */}
+        <article className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="p-4">
+            {/* Post Header */}
+            <div className="flex items-center gap-2 mb-3">
+              <Link
+                href={`/r/${subreddit}`}
+                className="flex items-center gap-2 hover:underline"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-sm font-bold text-primary-foreground">
+                    {subreddit.charAt(0).toUpperCase()}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 rounded-r-full hover:bg-downvote/20"
-                  >
-                    <ArrowBigDown className="h-5 w-5" />
-                  </Button>
                 </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-2 rounded-full hover:bg-secondary"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    {mockPost.commentCount} Comments
-                  </span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-2 rounded-full hover:bg-secondary"
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span className="text-sm font-medium">Share</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 gap-2 rounded-full hover:bg-secondary"
-                >
-                  <Bookmark className="h-4 w-4" />
-                  <span className="text-sm font-medium">Save</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 rounded-full hover:bg-secondary ml-auto"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
+                <span className="text-sm font-semibold">r/{subreddit}</span>
+              </Link>
+              <span className="text-sm text-muted-foreground">•</span>
+              <span className="text-sm text-muted-foreground">
+                Posted by u/{mockPost.author}
+              </span>
+              <span className="text-sm text-muted-foreground">•</span>
+              <span className="text-sm text-muted-foreground">
+                {mockPost.timeAgo}
+              </span>
             </div>
-          </article>
 
-          {/* Comment Form */}
-          <div className="bg-card rounded-xl border border-border p-4 mt-4">
-            <div className="flex gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/diverse-user-avatars.png" />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  U
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <Textarea
-                  placeholder="What are your thoughts?"
-                  className="min-h-[100px] resize-none border-border focus-visible:ring-primary"
-                />
-                <div className="flex justify-end mt-2">
-                  <Button size="sm" className="rounded-full">
-                    Comment
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+            {/* Post Title */}
+            <h1 className="text-xl font-bold mb-3">{mockPost.title}</h1>
 
-          {/* Comments */}
-          <div className="bg-card rounded-xl border border-border mt-4 p-4">
-            <div className="space-y-2">
-              {mockComments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  {...comment}
-                  activeReplyId={activeReplyId}
-                  onReplyClick={handleReplyClick}
-                  onCloseReply={closeReplyForm}
-                />
+            {/* Post Content */}
+            <div className="prose prose-sm max-w-none mb-4">
+              {mockPost.content.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="mb-3 text-foreground">
+                  {paragraph}
+                </p>
               ))}
             </div>
+
+            {/* Post Image */}
+            {mockPost.imageUrl && (
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                <Image
+                  src={mockPost.imageUrl || '/placeholder.svg'}
+                  alt={mockPost.title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            )}
+
+            {/* Post Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <div className="flex items-center bg-secondary rounded-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 rounded-l-full hover:bg-upvote/20"
+                >
+                  <ArrowBigUp className="h-5 w-5" />
+                </Button>
+                <span className="text-sm font-semibold min-w-[3rem] text-center">
+                  {(mockPost.upvotes / 1000).toFixed(1)}k
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 rounded-r-full hover:bg-downvote/20"
+                >
+                  <ArrowBigDown className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 rounded-full hover:bg-secondary"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {mockPost.commentCount} Comments
+                </span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 rounded-full hover:bg-secondary"
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="text-sm font-medium">Share</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 rounded-full hover:bg-secondary"
+              >
+                <Bookmark className="h-4 w-4" />
+                <span className="text-sm font-medium">Save</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-full hover:bg-secondary ml-auto"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </main>
-      </div>
-      {/* BottomNav */}
-      <BottomNav />
+        </article>
+
+        {/* Comment Form */}
+        <div className="bg-card rounded-xl border border-border p-4 mt-4">
+          <div className="flex gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="/diverse-user-avatars.png" />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                U
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <Textarea
+                placeholder="What are your thoughts?"
+                className="min-h-[100px] resize-none border-border focus-visible:ring-primary"
+              />
+              <div className="flex justify-end mt-2">
+                <Button size="sm" className="rounded-full">
+                  Comment
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl border border-border mt-4 p-4">
+          <div className="space-y-2">
+            {mockComments.map((comment) => (
+              <Comment
+                key={comment.id}
+                {...comment}
+                activeReplyId={activeReplyId}
+                onReplyClick={handleReplyClick}
+                onCloseReply={closeReplyForm}
+              />
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

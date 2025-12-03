@@ -1,3 +1,5 @@
+'use client'
+
 import { Header } from '@/components/header'
 import { Sidebar } from '@/components/sidebar'
 import { Comment } from '@/components/comment'
@@ -16,6 +18,7 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import { BottomNav } from '@/components/bottom-nav'
+import { useState } from 'react'
 
 const mockPost = {
   id: '1',
@@ -101,17 +104,27 @@ const mockComments = [
   },
 ]
 
-export default async function PostPage({
-  params,
-}: {
+import React from 'react'
+
+export default function PostPage(props: {
   params: Promise<{ subreddit: string; id: string }>
 }) {
-  const { subreddit } = await params
+  const { subreddit } = React.use(props.params)
+
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
+
+  const handleReplyClick = (id: string) => {
+    if (!activeReplyId) {
+      setActiveReplyId(id)
+    }
+  }
+
+  const closeReplyForm = () => setActiveReplyId(null)
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex max-w-[1400px] mx-auto">
+      <div className="flex w-full">
         <Sidebar />
         <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4">
           {/* Back Button */}
@@ -261,7 +274,13 @@ export default async function PostPage({
           <div className="bg-card rounded-xl border border-border mt-4 p-4">
             <div className="space-y-2">
               {mockComments.map((comment) => (
-                <Comment key={comment.id} {...comment} />
+                <Comment
+                  key={comment.id}
+                  {...comment}
+                  activeReplyId={activeReplyId}
+                  onReplyClick={handleReplyClick}
+                  onCloseReply={closeReplyForm}
+                />
               ))}
             </div>
           </div>

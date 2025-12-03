@@ -4,37 +4,53 @@
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { Session } from 'next-auth'
 
 export function useAuth() {
   const { data: session, status, update } = useSession()
-  const [user, setUser] = useState<Session['user'] | null>(
-    session?.user ?? null,
-  )
+
+  const [user, setUser] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     async function fetchUser() {
       if (status !== 'authenticated') return
 
-      const provider = session?.user.provider ?? session?.provider
+      const provider =
+        (session?.user as Record<string, unknown>)?.provider ??
+        (session as unknown as Record<string, unknown>)?.provider ??
+        'credentials'
 
-      if (provider === 'credentials') {
-        setLoading(true)
-        try {
-          const res = await api.get('/auth/me', {
-            headers: {
-              Authorization: `Bearer ${session?.user?.accessToken}`,
-            },
-          })
-          setUser(res.data)
-        } catch (e) {
-          setUser(session?.user)
-        } finally {
-          setLoading(false)
-        }
-      } else {
-        setUser(session?.user)
+      if (provider !== 'credentials') {
+        const sessionUser = session?.user
+          ? (session.user as Record<string, unknown>)
+          : null
+
+        setUser(sessionUser)
+        return
+      }
+
+      setLoading(true)
+      try {
+        const token = (session?.user as Record<string, unknown>)?.accessToken
+
+        const res = await api.get('/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const apiUser = res.data as Record<string, unknown>
+
+        setUser({
+          ...(session?.user as Record<string, unknown>),
+          ...apiUser,
+        })
+      } catch (e) {
+        setUser(
+          session?.user ? (session.user as Record<string, unknown>) : null,
+        )
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -46,7 +62,7 @@ export function useAuth() {
     status,
     isAuthenticated: status === 'authenticated',
     user,
-    token: session?.user?.accessToken,
+    token: (session?.user as Record<string, unknown>)?.accessToken ?? null,
     loading,
     update,
   }

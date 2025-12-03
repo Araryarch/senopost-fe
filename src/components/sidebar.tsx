@@ -25,6 +25,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useQuery } from '@tanstack/react-query'
+import api from '@/lib/api'
 
 const mainLinks = [
   { icon: Home, label: 'Home', href: '/' },
@@ -32,30 +34,27 @@ const mainLinks = [
   { icon: ArrowUpCircle, label: 'All', href: '/r/all' },
 ]
 
-const topics = [
-  { label: 'Gaming', href: '/t/gaming' },
-  { label: 'News', href: '/t/news' },
-  { label: 'Movies & TV', href: '/t/movies' },
-  { label: 'Music', href: '/t/music' },
-  { label: 'Books', href: '/t/books' },
-  { label: 'Relationships', href: '/t/relationships' },
-  { label: 'Fitness', href: '/t/fitness' },
-  { label: 'Programming', href: '/t/programming' },
-  { label: 'Careers', href: '/t/careers' },
-]
-
-const communities = [
-  { name: 'r/programming', members: '6.2M' },
-  { name: 'r/webdev', members: '2.1M' },
-  { name: 'r/javascript', members: '2.4M' },
-  { name: 'r/reactjs', members: '423K' },
-  { name: 'r/nextjs', members: '98K' },
-]
+interface CommunityInterface {
+  id: string
+  name: string
+  description: string
+  creatorId: string
+  createdAt: string
+  updatedAt: string
+}
 
 export function Sidebar() {
-  const [topicsOpen, setTopicsOpen] = useState(true)
   const [communitiesOpen, setCommunitiesOpen] = useState(true)
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const { data: communities = [] } = useQuery({
+    queryKey: ['communities'],
+    queryFn: async () => {
+      const res = await api.get('/communities')
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -120,38 +119,6 @@ export function Sidebar() {
 
           {!isCollapsed && (
             <>
-              <Collapsible open={topicsOpen} onOpenChange={setTopicsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between h-9 px-4 hover:bg-secondary rounded-lg"
-                  >
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Topics
-                    </span>
-                    <ChevronDown
-                      className={`h-4 w-4 text-muted-foreground transition-transform ${
-                        topicsOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 mt-1">
-                  {topics.map((topic) => (
-                    <Link key={topic.href} href={topic.href}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-9 px-4 hover:bg-secondary rounded-lg text-sm"
-                      >
-                        <span>{topic.label}</span>
-                      </Button>
-                    </Link>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-
-              <div className="my-4 border-t border-border" />
-
               <Collapsible
                 open={communitiesOpen}
                 onOpenChange={setCommunitiesOpen}
@@ -182,23 +149,27 @@ export function Sidebar() {
                     </Button>
                   </Link>
 
-                  {communities.map((community) => (
-                    <Link key={community.name} href={`/${community.name}`}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-3 h-9 px-4 hover:bg-secondary rounded-lg text-sm"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-primary-foreground">
-                            {community.name.charAt(2).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{community.name}</span>
-                        </div>
-                      </Button>
-                    </Link>
-                  ))}
+                  {communities.map(
+                    (community: CommunityInterface, idx: number) => (
+                      <Link key={idx} href={`/r/${community.id}`}>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start gap-3 h-9 px-4 hover:bg-secondary rounded-lg text-sm"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-primary-foreground">
+                              {community.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-start first-letter:uppercase!">
+                            <span className="font-medium first-letter:uppercase">
+                              {community.name}
+                            </span>
+                          </div>
+                        </Button>
+                      </Link>
+                    ),
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             </>

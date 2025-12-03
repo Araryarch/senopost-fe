@@ -98,7 +98,7 @@ export default function CommunityPage(props: {
             </div>
             <div className="flex-1 pb-2">
               <h1 className="text-2xl font-bold">{username}</h1>
-              <p className="text-muted-foreground">Community: {username}</p>
+              <p className="text-muted-foreground">r/{username}</p>
             </div>
             <div className="flex gap-2 pb-2">
               <Button

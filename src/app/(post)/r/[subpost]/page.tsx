@@ -8,7 +8,7 @@ import { Calendar, PersonStandingIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
 import api from '@/lib/api'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { PostCard } from '@/components/post-card'
 
@@ -16,8 +16,8 @@ interface Community {
   id: string
   name: string
   description: string
-  author: string
-  createdAt: string
+  author?: string
+  createdAt?: string
 }
 
 interface Post {
@@ -58,43 +58,60 @@ function CommunitySkeleton() {
 export default function CommunityPage(props: {
   params: Promise<{ subpost: string }>
 }) {
-  const params = React.use(props.params)
-  const { subpost } = params
-
-  const [joined, setJoined] = useState(false)
+  const [subpostValue, setSubpostValue] = useState<string | null>(null)
   const [loadingJoin, setLoadingJoin] = useState(false)
+  const [joined, setJoined] = useState(false)
+
+  // Resolve subpost Promise
+  useEffect(() => {
+    props.params.then((p) => setSubpostValue(p.subpost))
+  }, [props.params])
 
   // Fetch community info
   const {
     data: community,
-    isLoading,
-    isError,
+    isLoading: communityLoading,
+    isError: communityError,
   } = useQuery<Community>({
-    queryKey: ['community', subpost],
+    queryKey: ['community', subpostValue],
     queryFn: async () => {
-      const res = await api.get<Community>(`/communities/${subpost}`)
+      const res = await api.get(`/communities/${subpostValue}`)
       return res.data
     },
+    enabled: !!subpostValue,
     retry: 3,
     retryDelay: 2000,
   })
 
-  // Fetch posts by community
   const {
     data: posts = [],
     isLoading: postsLoading,
     isError: postsError,
   } = useQuery<Post[]>({
-    queryKey: ['posts', subpost],
+    queryKey: ['posts', subpostValue],
     queryFn: async () => {
       const res = await api.get<{ posts: Post[] }>(
-        `/communities/${subpost}/posts`,
+        `/communities/${subpostValue}/posts`,
       )
-      // Make sure we always return an array
       return Array.isArray(res.data.posts) ? res.data.posts : []
     },
     enabled: !!community,
   })
+
+  const { data: followedCommunities } = useQuery<Community[]>({
+    queryKey: ['followedCommunities'],
+    queryFn: async () => {
+      const res = await api.get<Community[]>('/followed')
+      return res.data
+    },
+    enabled: !!community,
+  })
+
+  useEffect(() => {
+    if (community && followedCommunities) {
+      setJoined(followedCommunities.some((c) => c.id === community.id))
+    }
+  }, [community, followedCommunities])
 
   const handleJoinToggle = async () => {
     if (!community) return
@@ -115,17 +132,9 @@ export default function CommunityPage(props: {
     }
   }
 
-  if (!subpost) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Invalid community ID</p>
-      </div>
-    )
-  }
+  if (!subpostValue || communityLoading) return <CommunitySkeleton />
 
-  if (isLoading) return <CommunitySkeleton />
-
-  if (isError || !community) {
+  if (communityError || !community) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Failed to load community.</p>
@@ -134,7 +143,7 @@ export default function CommunityPage(props: {
     )
   }
 
-  const username = community.name
+  const username = community?.name || 'Unknown'
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,7 +170,7 @@ export default function CommunityPage(props: {
                 {loadingJoin ? 'Processing...' : joined ? 'Joined' : 'Join'}
               </Button>
 
-              <Link href="/settings/profile">
+              <Link href="/settings/community">
                 <Button
                   variant="outline"
                   className="rounded-full bg-transparent"
@@ -175,7 +184,6 @@ export default function CommunityPage(props: {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Posts column */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="posts">
               <TabsList className="bg-card border rounded-full p-1 mb-4">
@@ -211,9 +219,10 @@ export default function CommunityPage(props: {
                     <PostCard
                       key={post.id}
                       id={post.id}
+                      cid={community.id}
                       title={post.title}
                       content={post.content || post.url}
-                      subreddit={community.name}
+                      subpost={community.name}
                       author={post.author}
                       upvotes={post.upvotes || 0}
                       commentCount={post.commentCount || 0}
@@ -233,7 +242,6 @@ export default function CommunityPage(props: {
             </Tabs>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4">
@@ -247,13 +255,17 @@ export default function CommunityPage(props: {
                     <Calendar className="h-4 w-4" />
                     <span>
                       Created:{' '}
-                      {new Date(community.createdAt).toLocaleDateString()}
+                      {community.createdAt
+                        ? new Date(community.createdAt).toLocaleDateString()
+                        : 'N/A'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <PersonStandingIcon className="h-4 w-4" />
-                    <span>Author: u/{community.author}</span>
-                  </div>
+                  {community.author && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <PersonStandingIcon className="h-4 w-4" />
+                      <span>Author: u/{community.author}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

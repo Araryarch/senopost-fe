@@ -68,14 +68,15 @@ export default function ProfileSettingsPage() {
     setPhotoPreview(sessionUser.photo || '')
   }, [sessionUser])
 
+  // HANDLE FILE UPLOAD AND CONVERT TO BASE64
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
       reader.onloadend = () => {
         const base64String = reader.result as string
-        setPhotoPreview(base64String)
-        setPhotoBase64(base64String.split(',')[1])
+        setPhotoPreview(base64String) // Full data URL for preview
+        setPhotoBase64(base64String.split(',')[1]) // Pure base64 for patch
         setIsPhotoChanged(true)
       }
       reader.readAsDataURL(file)

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client'
+
 import { Header } from '@/components/header'
 import { PostCard } from '@/components/post-card'
 import { Button } from '@/components/ui/button'
@@ -6,38 +9,38 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Calendar, Cake, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/authOptions'
+import { useQuery } from '@tanstack/react-query'
+import api from '@/lib/api'
+import { useState, useEffect } from 'react'
 
-const mockUserPosts = [
-  {
-    id: 'u1',
-    title: 'Just released my first open source project after 6 months of work!',
-    content:
-      "I've been working on this project for the past 6 months and finally decided to open source it...",
-    subreddit: 'programming',
-    author: 'dev_enthusiast',
-    upvotes: 15420,
-    commentCount: 423,
-    timeAgo: '5 hours ago',
-  },
-  {
-    id: 'u2',
-    title: "What's your favorite VS Code extension?",
-    content:
-      "I've been using VS Code for years now and always looking for new extensions to improve my workflow.",
-    subreddit: 'webdev',
-    author: 'dev_enthusiast',
-    upvotes: 892,
-    commentCount: 234,
-    timeAgo: '2 days ago',
-  },
-]
+export default function UserProfilePage() {
+  const [username, setUsername] = useState('User')
 
-export default async function UserProfilePage() {
-  const session = await getServerSession(authOptions)
-  const username =
-    session?.user?.name || session?.user?.email?.split('@')[0] || 'User'
+  // Example: fetch user info from API or session
+  useEffect(() => {
+    const fetchSession = async () => {
+      const res = await api.get('/me') // misal endpoint user
+      const user = res.data
+      setUsername(user?.name || user?.email?.split('@')[0] || 'User')
+    }
+    fetchSession()
+  }, [])
+
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ['posts', username],
+    queryFn: async () => {
+      const res = await api.get('/posts')
+      return res.data
+    },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading posts...
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,9 +93,15 @@ export default async function UserProfilePage() {
               </TabsList>
 
               <TabsContent value="posts" className="space-y-3">
-                {mockUserPosts.map((post) => (
-                  <PostCard key={post.id} {...post} />
-                ))}
+                {posts.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      No posts yet
+                    </CardContent>
+                  </Card>
+                ) : (
+                  posts.map((post: any) => <PostCard key={post.id} {...post} />)
+                )}
               </TabsContent>
 
               <TabsContent value="comments">
@@ -123,7 +132,6 @@ export default async function UserProfilePage() {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            {/* User Info Card */}
             <Card>
               <CardContent className="p-4 space-y-4">
                 <h3 className="font-semibold">About</h3>
@@ -135,24 +143,11 @@ export default async function UserProfilePage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Cake className="h-4 w-4" />
-                    <span>Cake Day: March 15, 2021</span>
+                    <span>Date Start: March 15, 2021</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span>3 years on Reddit</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">15.4k</p>
-                    <p className="text-xs text-muted-foreground">Post Karma</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">8.2k</p>
-                    <p className="text-xs text-muted-foreground">
-                      Comment Karma
-                    </p>
+                    <span>3 years on Senopost</span>
                   </div>
                 </div>
               </CardContent>

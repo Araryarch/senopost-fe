@@ -245,7 +245,7 @@ export default function PostPage(props: {
         <div className="bg-card rounded-xl border border-border p-4 mt-4">
           <div className="flex gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/diverse-user-avatars.png" />
+              <AvatarImage src="" />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 U
               </AvatarFallback>

@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Eye, EyeOff, Github } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -84,24 +83,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <Button
-              type="button"
-              onClick={() => signIn('github')}
-              variant="outline"
-              className="w-full h-11 rounded-full gap-3 bg-transparent cursor-pointer"
-            >
-              <Github />
-              Continue with Github
-            </Button>
-          </div>
-
-          <div className="relative">
-            <Separator />
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground uppercase">
-              or
-            </span>
-          </div>
+          {/* Credential form only (OAuth removed) */}
 
           {/* FORM */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

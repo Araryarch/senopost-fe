@@ -4,7 +4,6 @@ import Link from 'next/link'
 import {
   Search,
   Bell,
-  MessageSquare,
   Plus,
   ChevronDown,
   Menu,
@@ -58,15 +57,6 @@ export function Header() {
         <div className="flex items-center gap-1">
           {isAuthenticated ? (
             <>
-              <Link href="/chat">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-secondary hidden sm:flex"
-                >
-                  <Bot className="h-5 w-5" />
-                </Button>
-              </Link>
               <Link href="/submit">
                 <Button
                   variant="ghost"
@@ -84,14 +74,15 @@ export function Header() {
               >
                 <Bell className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full hover:bg-secondary hidden sm:flex"
-              >
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-
+              <Link href="/chat">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-secondary hidden sm:flex"
+                >
+                  <Bot className="h-5 w-5" />
+                </Button>
+              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

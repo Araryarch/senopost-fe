@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Flame, Sparkles, ArrowUpCircle, Clock } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
@@ -12,8 +12,22 @@ const tabs = [
   { id: 'top', label: 'Top', icon: ArrowUpCircle },
 ]
 
-export function FeedTabs() {
-  const [activeTab, setActiveTab] = useState('best')
+type FeedTabsProps = {
+  value?: string
+  onChange?: (id: string) => void
+}
+
+export function FeedTabs({ value, onChange }: FeedTabsProps) {
+  const [activeTab, setActiveTab] = useState<string>(value ?? 'best')
+
+  useEffect(() => {
+    if (value) setActiveTab(value)
+  }, [value])
+
+  function handleClick(id: string) {
+    setActiveTab(id)
+    onChange?.(id)
+  }
 
   return (
     <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
@@ -28,7 +42,7 @@ export function FeedTabs() {
               ? 'bg-secondary text-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
           )}
-          onClick={() => setActiveTab(tab.id)}
+          onClick={() => handleClick(tab.id)}
         >
           <tab.icon className="h-4 w-4" />
           {tab.label}

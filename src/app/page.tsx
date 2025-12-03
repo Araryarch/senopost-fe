@@ -1,11 +1,13 @@
+'use client'
+
 import { Header } from '@/components/header'
 import { Sidebar } from '@/components/sidebar'
 import { RightSidebar } from '@/components/right-sidebar'
 import { PostCard } from '@/components/post-card'
 import { FeedTabs } from '@/components/feed-tabs'
-// import { CreatePostWidget } from '@/components/create-post-widget'
 import { BottomNav } from '@/components/bottom-nav'
 import CreatePostWrapper from '@/components/create-post-wrapper'
+import { useMemo, useState } from 'react'
 
 const mockPosts = [
   {
@@ -79,6 +81,26 @@ const mockPosts = [
 ]
 
 export default function Page() {
+  const [activeTab, setActiveTab] = useState<string>('best')
+
+  const filteredPosts = useMemo(() => {
+    const posts = [...mockPosts]
+
+    switch (activeTab) {
+      case 'hot':
+        // sort by comment count (hot)
+        return posts.sort((a, b) => b.commentCount - a.commentCount)
+      case 'new':
+        // sort by id descending as a proxy for newest
+        return posts.sort((a, b) => Number(b.id) - Number(a.id))
+      case 'top':
+      case 'best':
+      default:
+        // sort by upvotes
+        return posts.sort((a, b) => b.upvotes - a.upvotes)
+    }
+  }, [activeTab])
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -86,9 +108,9 @@ export default function Page() {
         <Sidebar />
         <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
           <CreatePostWrapper />
-          <FeedTabs />
+          <FeedTabs value={activeTab} onChange={(id) => setActiveTab(id)} />
           <div className="space-y-3">
-            {mockPosts.map((post) => (
+            {filteredPosts.map((post) => (
               <PostCard key={post.id} {...post} />
             ))}
           </div>

@@ -1,16 +1,10 @@
 import { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import GitHubProvider from 'next-auth/providers/github'
 import { AxiosError } from 'axios'
 import api from '@/lib/api'
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    // GitHub OAuth
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID as string,
-      clientSecret: process.env.GITHUB_SECRET as string,
-    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -50,20 +44,13 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user, account }) {
-      // If OAuth provider returned an access token (e.g., GitHub), store it
-      if (account?.access_token) {
-        token.accessToken = account.access_token as string
-      }
-
-      // For credential provider, the `user` may contain backend token
+    async jwt({ token, user }) {
       if (user) {
         const userWithToken = user as {
           token?: string
           id?: string
           email?: string
         }
-        // credential flow returns token property on user
         if (userWithToken.token) token.accessToken = userWithToken.token
         token.id = userWithToken.id
         token.email = userWithToken.email
@@ -82,7 +69,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
 }

@@ -175,11 +175,15 @@ export default function SubmitPage() {
 
         {/* Submit Buttons */}
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" className="rounded-full bg-transparent">
+          <Button
+            disabled
+            variant="outline"
+            className="rounded-full bg-transparent"
+          >
             Save Draft
           </Button>
           <Button
-            className="rounded-full"
+            className="rounded-full cursor-pointer"
             disabled={!title || !selectedCommunity}
           >
             Post

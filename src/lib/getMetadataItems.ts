@@ -5,15 +5,13 @@ export const getMetadataItems = (
 ) => {
   const baseUrl =
     process.env.NODE_ENV === 'production'
-      ? 'https://yourdomain.com/'
+      ? 'https://senopost.my.id/'
       : 'http://localhost:3000'
   const pathname = baseUrl + slug
-  const title = templateTitle
-    ? `${templateTitle} | Your Team Name 2025`
-    : 'Your Team Name 2025'
+  const title = templateTitle ? `${templateTitle} | Senopost` : 'Senopost'
   const description = templateDescription
-    ? 'Your Description Event or Team'
-    : 'Your Description Event or Team'
+    ? 'Simple Soccial Media For Final Projects ( not commercial )'
+    : 'Simple Soccial Media For Final Projects ( not commercial )'
   // const ogUrl = new URL(
   //   baseUrl + `/api/og?title=${templateTitle}&description=${description}`,
   // ).href;

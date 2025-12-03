@@ -31,8 +31,8 @@ const popularPosts = [
 export function RightSidebar() {
   return (
     <aside className="w-[312px] h-[calc(100vh-48px)] sticky top-12 hidden xl:block p-4">
-      <ScrollArea className="h-full pr-1 space-y-4">
-        <Card className="border-border">
+      <ScrollArea className="h-full pr-1">
+        <Card className="border-border mb-5">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -70,7 +70,7 @@ export function RightSidebar() {
           </CardContent>
         </Card>
 
-        <Card className="border-border">
+        <Card className="border-border mb-5">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Users className="h-4 w-4 text-primary" />

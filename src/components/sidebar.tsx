@@ -4,7 +4,6 @@ import Link from 'next/link'
 import {
   Home,
   Flame,
-  ArrowUpCircle,
   ChevronDown,
   Plus,
   PanelLeftClose,
@@ -30,8 +29,7 @@ import api from '@/lib/api'
 
 const mainLinks = [
   { icon: Home, label: 'Home', href: '/' },
-  { icon: Flame, label: 'Popular', href: '/r/popular' },
-  { icon: ArrowUpCircle, label: 'All', href: '/r/all' },
+  { icon: Flame, label: 'Popular', href: '/popular' },
 ]
 
 interface CommunityInterface {

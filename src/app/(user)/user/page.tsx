@@ -43,26 +43,20 @@ export default async function UserProfilePage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Profile Banner */}
       <div className="h-32 bg-gradient-to-r from-primary/30 to-primary/60" />
 
-      {/* Profile Content */}
       <div className="max-w-4xl mx-auto px-4 pb-20 lg:pb-4">
-        {/* Profile Header */}
         <div className="relative -mt-16 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            {/* Profile Picture */}
             <div className="h-32 w-32 rounded-full border-4 border-background bg-primary flex items-center justify-center">
               <span className="text-4xl font-bold text-primary-foreground">
                 {username?.charAt(0).toUpperCase()}
               </span>
             </div>
-            {/* Profile Details */}
             <div className="flex-1 pb-2">
               <h1 className="text-2xl font-bold">{username}</h1>
               <p className="text-muted-foreground">u/{username}</p>
             </div>
-            {/* Actions */}
             <div className="flex gap-2 pb-2">
               <Link href="/settings/profile">
                 <Button
@@ -77,9 +71,7 @@ export default async function UserProfilePage() {
           </div>
         </div>
 
-        {/* Main Content and Sidebar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="posts">
               <TabsList className="bg-card border rounded-full p-1 mb-4">

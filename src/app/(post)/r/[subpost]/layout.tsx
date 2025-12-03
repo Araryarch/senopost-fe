@@ -10,7 +10,7 @@ export default function Layouts({ children }: { children: React.ReactNode }) {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
+        <main className="flex-1 min-w-0 px-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
           {children}
         </main>
         <RightSidebar />

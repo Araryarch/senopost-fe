@@ -170,7 +170,7 @@ export default function CommunityPage(props: {
                 {loadingJoin ? 'Processing...' : joined ? 'Joined' : 'Join'}
               </Button>
 
-              <Link href="/settings/community">
+              <Link href={`/settings/community?cid=${community.id}`}>
                 <Button
                   variant="outline"
                   className="rounded-full bg-transparent"

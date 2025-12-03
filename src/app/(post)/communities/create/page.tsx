@@ -30,7 +30,7 @@ export default function CreateCommunityPage() {
       toast.success('Community created successfully!')
 
       const communityId = res.data.id
-      router.push(`/r/?cid=${communityId}`)
+      router.push(`/r/${communityId}`)
     } catch (err) {
       setIsSaving(false)
       console.error(err)

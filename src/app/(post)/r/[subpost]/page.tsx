@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, Cake, Settings } from 'lucide-react'
+import { Calendar, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
 import api from '@/lib/api'
@@ -57,9 +57,11 @@ export default function CommunityPage(props: {
       const res = await api.get<Community>(`/communities/${subpost}`)
       return res.data
     },
-    retry: 3, // coba ulang 3x
-    retryDelay: 2000, // tunggu 2 detik sebelum retry
+    retry: 3,
+    retryDelay: 2000,
   })
+
+  const [joined, setJoined] = React.useState(false)
 
   if (!subpost) {
     return (
@@ -99,6 +101,13 @@ export default function CommunityPage(props: {
               <p className="text-muted-foreground">Community: {username}</p>
             </div>
             <div className="flex gap-2 pb-2">
+              <Button
+                variant={joined ? 'secondary' : 'default'}
+                onClick={() => setJoined(!joined)}
+              >
+                {joined ? 'Joined' : 'Join'}
+              </Button>
+
               <Link href="/settings/profile">
                 <Button
                   variant="outline"
@@ -126,18 +135,13 @@ export default function CommunityPage(props: {
 
               <TabsContent value="posts">
                 <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    No posts in this community yet
-                  </CardContent>
+                  <CardContent className="p-8 text-center text-muted-foreground"></CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="popular">
                 <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    Community created at:{' '}
-                    {new Date(community.createdAt).toLocaleDateString()}
-                  </CardContent>
+                  <CardContent className="p-8 text-center text-muted-foreground"></CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
@@ -152,10 +156,6 @@ export default function CommunityPage(props: {
                 </p>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Cake className="h-4 w-4" />
-                    <span>Community ID: {community.id}</span>
-                  </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>

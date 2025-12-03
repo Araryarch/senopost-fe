@@ -3,8 +3,9 @@ import { Sidebar } from '@/components/sidebar'
 import { RightSidebar } from '@/components/right-sidebar'
 import { PostCard } from '@/components/post-card'
 import { FeedTabs } from '@/components/feed-tabs'
-import { CreatePostWidget } from '@/components/create-post-widget'
+// import { CreatePostWidget } from '@/components/create-post-widget'
 import { BottomNav } from '@/components/bottom-nav'
+import CreatePostWrapper from '@/components/create-post-wrapper'
 
 const mockPosts = [
   {
@@ -84,7 +85,7 @@ export default function Page() {
       <div className="flex ">
         <Sidebar />
         <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
-          <CreatePostWidget />
+          <CreatePostWrapper />
           <FeedTabs />
           <div className="space-y-3">
             {mockPosts.map((post) => (

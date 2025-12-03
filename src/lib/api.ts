@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import { GetServerSidePropsContext } from 'next/types'
 import Cookies from 'universal-cookie'
+import { getSession } from 'next-auth/react'
 
 import { getToken } from '@/lib/cookies'
 import { UninterceptedApiError } from '@/types/api'
@@ -23,7 +24,7 @@ export const api = axios.create({
 api.defaults.withCredentials = false
 const isBrowser = typeof window !== 'undefined'
 
-api.interceptors.request.use(function (config) {
+api.interceptors.request.use(async function (config) {
   if (config.headers) {
     let token: string | undefined
 
@@ -34,7 +35,16 @@ api.interceptors.request.use(function (config) {
       const cookies = new Cookies(context.req?.headers.cookie)
       token = cookies.get('@<name>/token')
     } else {
-      token = getToken()
+      // Try to get token from NextAuth session first
+      const session = await getSession()
+      if (session?.user) {
+        const sessionUser = session.user as { accessToken?: string }
+        token = sessionUser.accessToken
+      }
+      // Fallback to cookie storage
+      if (!token) {
+        token = getToken()
+      }
     }
 
     config.headers.Authorization = token ? `Bearer ${token}` : ''

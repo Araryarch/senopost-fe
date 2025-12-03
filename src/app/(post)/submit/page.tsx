@@ -19,14 +19,14 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { FileText, Link2, ArrowLeft } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/lib/api'
 
-const communities = [
-  { id: 'programming', name: 'r/programming', members: '6.2M' },
-  { id: 'webdev', name: 'r/webdev', members: '2.1M' },
-  { id: 'javascript', name: 'r/javascript', members: '2.4M' },
-  { id: 'reactjs', name: 'r/reactjs', members: '423K' },
-  { id: 'nextjs', name: 'r/nextjs', members: '98K' },
-]
+interface CommunityInterface {
+  id: string
+  name: string
+  members: string
+}
 
 export default function SubmitPage() {
   const [selectedCommunity, setSelectedCommunity] = useState('')
@@ -35,6 +35,44 @@ export default function SubmitPage() {
   const [linkUrl, setLinkUrl] = useState('')
   const [isNsfw, setIsNsfw] = useState(false)
   const [isSpoiler, setIsSpoiler] = useState(false)
+  const queryClient = useQueryClient()
+
+  // Ambil daftar komunitas yang di-follow
+  const { data: followed = [] } = useQuery({
+    queryKey: ['followed'],
+    queryFn: async () => {
+      const res = await api.get('/followed')
+      return res.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+
+  const postMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCommunity) return
+      const payload =
+        linkUrl !== ''
+          ? { title, url: linkUrl, nsfw: isNsfw, spoiler: isSpoiler }
+          : { title, content, nsfw: isNsfw, spoiler: isSpoiler }
+      const res = await api.post(
+        `/communities/${selectedCommunity}/posts`,
+        payload,
+      )
+      return res.data
+    },
+    onSuccess: () => {
+      setTitle('')
+      setContent('')
+      setLinkUrl('')
+      setIsNsfw(false)
+      setIsSpoiler(false)
+      queryClient.invalidateQueries({ queryKey: ['posts', selectedCommunity] })
+    },
+  })
+
+  const handleSubmit = () => {
+    postMutation.mutate()
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +87,6 @@ export default function SubmitPage() {
 
         <h1 className="text-2xl font-bold mb-6">Create a Post</h1>
 
-        {/* Community Selector */}
         <div className="mb-6">
           <Select
             value={selectedCommunity}
@@ -59,10 +96,10 @@ export default function SubmitPage() {
               <SelectValue placeholder="Choose a community" />
             </SelectTrigger>
             <SelectContent>
-              {communities.map((community) => (
+              {followed.map((community: CommunityInterface) => (
                 <SelectItem key={community.id} value={community.id}>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{community.name}</span>
+                    <span className="font-medium">r/{community.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {community.members}
                     </span>
@@ -73,7 +110,6 @@ export default function SubmitPage() {
           </Select>
         </div>
 
-        {/* Tabs: Post + Link only */}
         <Card>
           <CardContent className="p-0">
             <Tabs defaultValue="post" className="w-full">
@@ -94,86 +130,68 @@ export default function SubmitPage() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Post Tab */}
               <TabsContent value="post" className="p-4 space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="text-lg font-medium"
-                    maxLength={300}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {title.length}/300
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Textarea
-                    placeholder="Text (optional)"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="min-h-[200px] resize-none"
-                  />
-                </div>
+                <Input
+                  placeholder="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-lg font-medium"
+                  maxLength={300}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {title.length}/300
+                </p>
+                <Textarea
+                  placeholder="Text (optional)"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[200px] resize-none"
+                />
               </TabsContent>
 
-              {/* Link Tab */}
               <TabsContent value="link" className="p-4 space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="text-lg font-medium"
-                    maxLength={300}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {title.length}/300
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="URL"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    type="url"
-                  />
-                </div>
+                <Input
+                  placeholder="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-lg font-medium"
+                  maxLength={300}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {title.length}/300
+                </p>
+                <Input
+                  placeholder="URL"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  type="url"
+                />
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
 
-        {/* Post Options */}
         <Card className="mt-4">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="nsfw"
-                  checked={isNsfw}
-                  onCheckedChange={setIsNsfw}
-                />
-                <Label htmlFor="nsfw" className="text-sm font-medium">
-                  NSFW
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="spoiler"
-                  checked={isSpoiler}
-                  onCheckedChange={setIsSpoiler}
-                />
-                <Label htmlFor="spoiler" className="text-sm font-medium">
-                  Spoiler
-                </Label>
-              </div>
+          <CardContent className="p-4 flex gap-6">
+            <div className="flex items-center gap-2">
+              <Switch id="nsfw" checked={isNsfw} onCheckedChange={setIsNsfw} />
+              <Label htmlFor="nsfw" className="text-sm font-medium">
+                NSFW
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="spoiler"
+                checked={isSpoiler}
+                onCheckedChange={setIsSpoiler}
+              />
+              <Label htmlFor="spoiler" className="text-sm font-medium">
+                Spoiler
+              </Label>
             </div>
           </CardContent>
         </Card>
 
-        {/* Submit Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <Button
             disabled
@@ -185,8 +203,9 @@ export default function SubmitPage() {
           <Button
             className="rounded-full cursor-pointer"
             disabled={!title || !selectedCommunity}
+            onClick={handleSubmit}
           >
-            Post
+            {postMutation.isPending ? 'Posting...' : 'Post'}
           </Button>
         </div>
       </div>

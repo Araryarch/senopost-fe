@@ -2,40 +2,53 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, Settings } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar, PersonStandingIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
 import api from '@/lib/api'
-import React from 'react'
+import React, { useState } from 'react'
+import { toast } from 'react-hot-toast'
+import { PostCard } from '@/components/post-card'
 
 interface Community {
   id: string
   name: string
   description: string
+  author: string
   createdAt: string
 }
 
-// Skeleton component
+interface Post {
+  id: string
+  title: string
+  content?: string
+  url?: string
+  author: string
+  createdAt: string
+  upvotes?: number
+  commentCount?: number
+}
+
 function CommunitySkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="h-32 bg-gray-300 rounded-b-2xl mb-6" />
+      <div className="h-32 bg-secondary rounded-b-2xl mb-6" />
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6">
-        <div className="h-32 w-32 rounded-full bg-gray-300" />
+        <div className="h-32 w-32 rounded-full bg-secondary" />
         <div className="flex-1 space-y-2">
-          <div className="h-6 bg-gray-300 w-1/3 rounded" />
-          <div className="h-4 bg-gray-300 w-1/2 rounded" />
+          <div className="h-6 bg-secondary w-1/3 rounded" />
+          <div className="h-4 bg-secondary w-1/2 rounded" />
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="h-32 bg-gray-300 rounded" />
-          <div className="h-32 bg-gray-300 rounded" />
+          <div className="h-32 bg-secondary rounded" />
+          <div className="h-32 bg-secondary rounded" />
         </div>
         <div className="space-y-4">
-          <div className="h-48 bg-gray-300 rounded" />
+          <div className="h-48 bg-secondary rounded" />
         </div>
       </div>
     </div>
@@ -43,10 +56,15 @@ function CommunitySkeleton() {
 }
 
 export default function CommunityPage(props: {
-  params: Promise<{ subpost: string; id: string }>
+  params: Promise<{ subpost: string }>
 }) {
-  const { subpost } = React.use(props.params)
+  const params = React.use(props.params)
+  const { subpost } = params
 
+  const [joined, setJoined] = useState(false)
+  const [loadingJoin, setLoadingJoin] = useState(false)
+
+  // Fetch community info
   const {
     data: community,
     isLoading,
@@ -61,7 +79,41 @@ export default function CommunityPage(props: {
     retryDelay: 2000,
   })
 
-  const [joined, setJoined] = React.useState(false)
+  // Fetch posts by community
+  const {
+    data: posts = [],
+    isLoading: postsLoading,
+    isError: postsError,
+  } = useQuery<Post[]>({
+    queryKey: ['posts', subpost],
+    queryFn: async () => {
+      const res = await api.get<{ posts: Post[] }>(
+        `/communities/${subpost}/posts`,
+      )
+      // Make sure we always return an array
+      return Array.isArray(res.data.posts) ? res.data.posts : []
+    },
+    enabled: !!community,
+  })
+
+  const handleJoinToggle = async () => {
+    if (!community) return
+    setLoadingJoin(true)
+    try {
+      if (!joined) {
+        await api.post('/follow', { communityId: community.id })
+        toast.success(`Joined r/${community.name}`)
+        setJoined(true)
+      } else {
+        toast.error('Leave community not implemented')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to join community')
+    } finally {
+      setLoadingJoin(false)
+    }
+  }
 
   if (!subpost) {
     return (
@@ -103,9 +155,10 @@ export default function CommunityPage(props: {
             <div className="flex gap-2 pb-2">
               <Button
                 variant={joined ? 'secondary' : 'default'}
-                onClick={() => setJoined(!joined)}
+                onClick={handleJoinToggle}
+                disabled={loadingJoin}
               >
-                {joined ? 'Joined' : 'Join'}
+                {loadingJoin ? 'Processing...' : joined ? 'Joined' : 'Join'}
               </Button>
 
               <Link href="/settings/profile">
@@ -122,6 +175,7 @@ export default function CommunityPage(props: {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Posts column */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="posts">
               <TabsList className="bg-card border rounded-full p-1 mb-4">
@@ -134,19 +188,52 @@ export default function CommunityPage(props: {
               </TabsList>
 
               <TabsContent value="posts">
-                <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground"></CardContent>
-                </Card>
+                {postsLoading ? (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      Loading posts...
+                    </CardContent>
+                  </Card>
+                ) : postsError ? (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      Failed to load posts.
+                    </CardContent>
+                  </Card>
+                ) : !Array.isArray(posts) || posts.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      No posts yet.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      id={post.id}
+                      title={post.title}
+                      content={post.content || post.url}
+                      subreddit={community.name}
+                      author={post.author}
+                      upvotes={post.upvotes || 0}
+                      commentCount={post.commentCount || 0}
+                      timeAgo={new Date(post.createdAt).toLocaleString()}
+                    />
+                  ))
+                )}
               </TabsContent>
 
               <TabsContent value="popular">
                 <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground"></CardContent>
+                  <CardContent className="p-8 text-center text-muted-foreground">
+                    Popular tab not implemented yet
+                  </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
           </div>
 
+          {/* Sidebar */}
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4">
@@ -162,6 +249,10 @@ export default function CommunityPage(props: {
                       Created:{' '}
                       {new Date(community.createdAt).toLocaleDateString()}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <PersonStandingIcon className="h-4 w-4" />
+                    <span>Author: u/{community.author}</span>
                   </div>
                 </div>
               </CardContent>

@@ -159,7 +159,8 @@ export function Sidebar() {
                               {community.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex flex-col items-start first-letter:uppercase!">
+                          <div className="flex items-start first-letter:uppercase!">
+                            r/
                             <span className="font-medium first-letter:uppercase">
                               {community.name}
                             </span>

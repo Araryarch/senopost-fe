@@ -4,9 +4,8 @@ import { Header } from '@/components/header'
 import { Sidebar } from '@/components/sidebar'
 import { RightSidebar } from '@/components/right-sidebar'
 import { PostCard } from '@/components/post-card'
-import { FeedTabs } from '@/components/feed-tabs'
 import { BottomNav } from '@/components/bottom-nav'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 const mockPosts = [
   {
@@ -80,22 +79,10 @@ const mockPosts = [
 ]
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState<string>('best')
-
-  const filteredPosts = useMemo(() => {
-    const posts = [...mockPosts]
-
-    switch (activeTab) {
-      case 'hot':
-        return posts.sort((a, b) => b.commentCount - a.commentCount)
-      case 'new':
-        return posts.sort((a, b) => Number(b.id) - Number(a.id))
-      case 'top':
-      case 'best':
-      default:
-        return posts.sort((a, b) => b.upvotes - a.upvotes)
-    }
-  }, [activeTab])
+  const hotPosts = useMemo(
+    () => [...mockPosts].sort((a, b) => b.commentCount - a.commentCount),
+    [],
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,9 +90,8 @@ export default function Page() {
       <div className="flex">
         <Sidebar />
         <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
-          <FeedTabs value={activeTab} onChange={(id) => setActiveTab(id)} />
           <div className="space-y-3">
-            {filteredPosts.map((post) => (
+            {hotPosts.map((post) => (
               <PostCard key={post.id} {...post} />
             ))}
           </div>

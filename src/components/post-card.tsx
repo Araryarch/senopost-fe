@@ -36,7 +36,6 @@ export function PostCard({
   title,
   content,
   subreddit,
-  author,
   upvotes,
   commentCount,
   timeAgo,
@@ -44,24 +43,29 @@ export function PostCard({
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
   const [currentVotes, setCurrentVotes] = useState(upvotes)
 
-  console.log(author)
-
   const handleVote = (type: 'up' | 'down') => {
     if (voteStatus === type) {
       setVoteStatus(null)
       setCurrentVotes(upvotes)
     } else {
       setVoteStatus(type)
-      setCurrentVotes(type === 'up' ? upvotes + 1 : upvotes - 1)
+      let newVotes = type === 'up' ? upvotes + 1 : upvotes - 1
+      if (newVotes < 0) newVotes = 0
+      setCurrentVotes(newVotes)
     }
   }
 
   const formatVotes = (votes: number) => {
-    if (votes >= 1000) {
-      return (votes / 1000).toFixed(1) + 'k'
-    }
+    if (votes >= 1000) return (votes / 1000).toFixed(1) + 'k'
     return votes.toString()
   }
+
+  const voteColor =
+    voteStatus === 'up'
+      ? 'bg-red-900'
+      : voteStatus === 'down'
+        ? 'bg-blue-950'
+        : ''
 
   return (
     <article className="bg-card rounded-xl border border-border hover:border-muted-foreground/30 transition-colors">
@@ -83,7 +87,7 @@ export function PostCard({
           <span className="text-xs text-muted-foreground">{timeAgo}</span>
         </div>
 
-        {/* Title & Content - Text only */}
+        {/* Title & Content */}
         <Link href={`/r/${subreddit}/comments/${id}`}>
           <h3 className="text-lg font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
             {title}
@@ -99,7 +103,12 @@ export function PostCard({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Vote Buttons */}
-          <div className="flex items-center bg-secondary rounded-full">
+          <div
+            className={cn(
+              'flex items-center bg-secondary rounded-full',
+              voteColor,
+            )}
+          >
             <Button
               variant="ghost"
               size="sm"
@@ -109,16 +118,10 @@ export function PostCard({
               )}
               onClick={() => handleVote('up')}
             >
-              <ArrowBigUp
-                className={cn('h-5 w-5', voteStatus === 'up' && 'fill-current')}
-              />
+              <ArrowBigUp className="h-5 w-5" />
             </Button>
             <span
-              className={cn(
-                'text-xs font-semibold min-w-[2rem] text-center',
-                voteStatus === 'up' && 'text-upvote',
-                voteStatus === 'down' && 'text-downvote',
-              )}
+              className={cn('text-xs font-semibold min-w-[2rem] text-center')}
             >
               {formatVotes(currentVotes)}
             </span>
@@ -131,12 +134,7 @@ export function PostCard({
               )}
               onClick={() => handleVote('down')}
             >
-              <ArrowBigDown
-                className={cn(
-                  'h-5 w-5',
-                  voteStatus === 'down' && 'fill-current',
-                )}
-              />
+              <ArrowBigDown className="h-5 w-5" />
             </Button>
           </div>
 

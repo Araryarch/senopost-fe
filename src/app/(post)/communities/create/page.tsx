@@ -30,6 +30,11 @@ export default function CreateCommunityPage() {
       toast.success('Community created successfully!')
 
       const communityId = res.data.id
+      try {
+        await api.post('/follow', { communityId })
+      } catch {
+        toast.error('Failed to follow the community automatically.')
+      }
       router.refresh()
       router.push(`/r/${communityId}`)
     } catch (err) {

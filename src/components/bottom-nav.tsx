@@ -11,7 +11,7 @@ const navItems = [
   { icon: Plus, label: 'Create', href: '/submit' },
   { icon: Bot, label: 'Chat', href: '/chat' },
   { icon: Bell, label: 'Inbox', href: '/notifications' },
-  { icon: User, label: 'Profile', href: '/user/profile' },
+  { icon: User, label: 'Profile', href: '/user' },
 ]
 
 export function BottomNav() {

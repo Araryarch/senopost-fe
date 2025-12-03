@@ -125,3 +125,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Scrollbar container */
+::-webkit-scrollbar {
+  width: 2px; /* lebar scrollbar */
+}
+
+/* Track (background) */
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+/* Thumb (bagian yang digeser) */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  -ms-border-radius: 2px;
+  -o-border-radius: 2px;
+}
+
+/* Hover thumb */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

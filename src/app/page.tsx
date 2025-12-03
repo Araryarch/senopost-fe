@@ -88,15 +88,12 @@ export default function Page() {
 
     switch (activeTab) {
       case 'hot':
-        // sort by comment count (hot)
         return posts.sort((a, b) => b.commentCount - a.commentCount)
       case 'new':
-        // sort by id descending as a proxy for newest
         return posts.sort((a, b) => Number(b.id) - Number(a.id))
       case 'top':
       case 'best':
       default:
-        // sort by upvotes
         return posts.sort((a, b) => b.upvotes - a.upvotes)
     }
   }, [activeTab])
@@ -104,7 +101,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex ">
+      <div className="flex">
         <Sidebar />
         <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
           <CreatePostWrapper />

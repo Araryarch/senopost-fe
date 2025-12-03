@@ -17,11 +17,15 @@ import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 
 // --------------------------------------
-// ZOD SCHEMA
+// ZOD SCHEMA (tambah username)
 // --------------------------------------
 const registerSchema = z
   .object({
     email: z.string().email('Email is invalid'),
+    username: z
+      .string()
+      .min(3, 'Username must be at least 3 characters')
+      .regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores'),
     password: z.string().min(6, 'Password must be at least 6 chars'),
     confirmPassword: z.string(),
   })
@@ -35,9 +39,6 @@ type RegisterForm = z.infer<typeof registerSchema>
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
 
-  // --------------------------------------
-  // React Hook Form
-  // --------------------------------------
   const {
     register,
     handleSubmit,
@@ -49,13 +50,13 @@ export default function RegisterPage() {
   const router = useRouter()
 
   // --------------------------------------
-  // Mutation (React Query)
+  // Mutation
   // --------------------------------------
   const registerMutation = useMutation({
     mutationFn: async (payload: {
       email: string
       password: string
-      nickname?: string
+      username: string
     }) => {
       const res = await api.post('/auth/register', payload)
       return res.data
@@ -69,23 +70,11 @@ export default function RegisterPage() {
     },
   })
 
-  // --------------------------------------
-  // Submit handler
-  // --------------------------------------
-  // generate a simple nickname from email local part + random number
-  const generateNickname = (email: string) => {
-    const local = email.split('@')[0] || 'user'
-    const cleaned = local.replace(/[^a-zA-Z0-9]/g, '')
-    const suffix = Math.floor(1000 + Math.random() * 9000)
-    return `${cleaned || 'user'}${suffix}`.toLowerCase()
-  }
-
   const onSubmit = (data: RegisterForm) => {
-    const nickname = generateNickname(data.email)
     registerMutation.mutate({
       email: data.email,
       password: data.password,
-      nickname,
+      username: data.username,
     })
   }
 
@@ -114,8 +103,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Credential signup form only (OAuth removed) */}
-
           {/* Form */}
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             {/* Email */}
@@ -130,6 +117,23 @@ export default function RegisterPage() {
               />
               {errors.email && (
                 <p className="text-red-500 text-sm">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Username (NEW, design tidak diubah) */}
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Username"
+                className="h-11 rounded-full"
+                {...register('username')}
+              />
+              {errors.username && (
+                <p className="text-red-500 text-sm">
+                  {errors.username.message}
+                </p>
               )}
             </div>
 

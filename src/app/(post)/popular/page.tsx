@@ -23,7 +23,6 @@ export default function Page() {
     },
   })
 
-  // Sort posts from best (highest upvotes) to low
   const filteredPosts = useMemo(() => {
     if (!posts || posts.length === 0) return []
     const postsCopy = [...posts]

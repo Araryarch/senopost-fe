@@ -56,11 +56,13 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   } = useQuery<Post | null>({
     queryKey: ['post', postId],
     queryFn: async () => {
-      const res = await api.get<Post[]>('/posts', { params: { id: postId } })
-      return res.data[0] || null
+      const res = await api.get<Post>(`/posts/${postId}`)
+      return res.data
     },
     enabled: !!postId,
   })
+
+  console.log(postId)
 
   const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
     FlatComment[]

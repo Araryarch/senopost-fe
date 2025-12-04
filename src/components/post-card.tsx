@@ -111,7 +111,7 @@ export function PostCard({
           >
             <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
               <span className="text-xs font-bold text-primary-foreground">
-                {subpost?.charAt(0).toUpperCase()}
+                {subpost.charAt(0).toUpperCase()}
               </span>
             </div>
             <span className="text-xs font-semibold">r/{subpost}</span>

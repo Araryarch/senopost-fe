@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth'
 interface Post {
   id: string
   title: string
+  community: string
   subpost: string
   author: string
   upvotes: number
@@ -65,7 +66,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   console.log({ post })
 
-  // Fetch comments (assuming flat list from API)
   const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
     FlatComment[]
   >({
@@ -77,10 +77,8 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     enabled: !!postId,
   })
 
-  // Build nested tree from flat comments
   const commentTree: CommentProps[] = buildCommentTree(flatComments)
 
-  // Mutation to post new top-level comment
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await api.post(`/posts/${postId}/comments`, {
@@ -97,7 +95,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   const author = post?.author || ''
 
-  // Helper: map API comments to CommentProps (add postId to nested replies)
   const mapCommentsToProps = (
     comments: CommentProps[],
     postId: string,
@@ -111,7 +108,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   return (
     <div className="min-h-screen bg-background">
       <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4">
-        {/* Back Button */}
         <Link href="/">
           <Button variant="ghost" size="sm" className="mb-4 gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -119,7 +115,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           </Button>
         </Link>
 
-        {/* Post */}
         {postLoading ? (
           <div className="text-center p-4 text-muted-foreground">
             Loading post...
@@ -130,7 +125,16 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           </div>
         ) : post ? (
           <article className="rounded-xl overflow-hidden">
-            <PostCard username={username} {...post} />
+            <PostCard
+              username={username}
+              subpost={post.community}
+              id={post.id}
+              title={post.title}
+              author={post.author}
+              upvotes={post.upvotes}
+              commentCount={post.commentCount}
+              timeAgo={post.timeAgo}
+            />
           </article>
         ) : (
           <div className="text-center p-4 text-red-500">Post not found</div>

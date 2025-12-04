@@ -123,16 +123,18 @@ export function RightSidebar() {
 
         {/* Create Community */}
         <Card className="border-border bg-secondary/50">
-          <CardContent className="pt-4">
-            <h3 className="font-semibold mb-2">Create Your Community</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Start your own community and connect with people who share your
-              interests.
-            </p>
-            <Button className="w-full rounded-full" size="sm">
-              Create Community
-            </Button>
-          </CardContent>
+          <Link href="/communities/create">
+            <CardContent className="pt-4">
+              <h3 className="font-semibold mb-2">Create Your Community</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Start your own community and connect with people who share your
+                interests.
+              </p>
+              <Button className="w-full rounded-full" size="sm">
+                Create Community
+              </Button>
+            </CardContent>
+          </Link>
         </Card>
       </ScrollArea>
     </aside>

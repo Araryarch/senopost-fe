@@ -95,6 +95,8 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     },
   })
 
+  const author = post?.author || ''
+
   // Helper: map API comments to CommentProps (add postId to nested replies)
   const mapCommentsToProps = (
     comments: CommentProps[],
@@ -185,6 +187,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
                     key={comment.id}
                     {...comment}
                     postId={postId}
+                    author={author}
                     activeReplyId={activeReplyId}
                     onReplyClick={handleReplyClick}
                     onCloseReply={closeReplyForm}

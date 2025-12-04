@@ -276,6 +276,7 @@ export function Comment({
                     key={reply.id}
                     {...reply}
                     depth={depth + 1}
+                    author={author}
                     postId={postId}
                     activeReplyId={activeReplyId}
                     onReplyClick={onReplyClick}

@@ -199,7 +199,7 @@ export function Comment({
           </Button>
 
           <Avatar className="h-6 w-6">
-            <AvatarImage src="/avatar-default.jpg" />
+            <AvatarImage src="" />
             <AvatarFallback className="text-xs">
               {(author?.charAt(0) || '?').toUpperCase()}
             </AvatarFallback>
@@ -280,7 +280,6 @@ export function Comment({
                     key={reply.id}
                     {...reply}
                     depth={depth + 1}
-                    author={author}
                     postId={postId}
                     activeReplyId={activeReplyId}
                     onReplyClick={onReplyClick}

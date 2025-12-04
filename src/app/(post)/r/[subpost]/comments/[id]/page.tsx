@@ -10,7 +10,6 @@ import React, { useState, useEffect } from 'react'
 import { PostCard } from '@/components/post-card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { useAuth } from '@/hooks/use-auth'
 
 interface Post {
   id: string
@@ -38,10 +37,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const [newComment, setNewComment] = useState('')
   const queryClient = useQueryClient()
 
-  const { user } = useAuth()
-
-  const username = user?.username as string
-
   useEffect(() => {
     props.params.then((p) => setPostId(p.id))
   }, [props.params])
@@ -61,8 +56,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     },
     enabled: !!postId,
   })
-
-  console.log(postId)
 
   const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
     FlatComment[]
@@ -122,11 +115,11 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
         ) : post ? (
           <article className="rounded-xl overflow-hidden">
             <PostCard
-              username={username}
+              username={post.author}
               subpost={post.community}
               id={post.id}
               title={post.title}
-              author={username}
+              author={post.author}
               upvotes={post.upvotes}
               commentCount={post.commentCount}
               timeAgo={post.timeAgo}
@@ -187,7 +180,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
                     key={comment.id}
                     {...comment}
                     postId={postId}
-                    author={username}
                     activeReplyId={activeReplyId}
                     onReplyClick={handleReplyClick}
                     onCloseReply={closeReplyForm}

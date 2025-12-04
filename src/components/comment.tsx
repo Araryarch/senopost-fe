@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { useAuth } from '@/hooks/use-auth'
 
 export interface CommentProps {
   id: string
@@ -101,6 +102,8 @@ export function Comment({
   postId,
   onVote,
 }: CommentProps) {
+  const { user } = useAuth()
+
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
   const [currentVotes, setCurrentVotes] = useState(upvotes || 0)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -144,13 +147,14 @@ export function Comment({
   }
 
   const handleSubmitReply = async () => {
-    if (!replyContent.trim() || !postId) return
+    if (!replyContent.trim() || !postId || !user) return
 
     setIsSubmittingReply(true)
     try {
       const payload = {
         content: replyContent,
         parentId: id,
+        userId: user.id, // ✅ add current user's ID
       }
 
       const res = await api.post(`/posts/${postId}/comments`, payload)

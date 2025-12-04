@@ -56,6 +56,7 @@ export default function CommunitySettingsPage() {
       toast.success('Community description updated!')
       setIsSaving(false)
       router.refresh()
+      router.push(`/r/${communityId}`)
     } catch (err) {
       console.error(err)
       toast.error('Failed to save description')

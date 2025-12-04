@@ -28,6 +28,7 @@ interface PostCardProps {
   content?: string
   subpost: string
   author: string
+  username: string
   upvotes: number
   commentCount: number
   timeAgo: string
@@ -40,6 +41,8 @@ export function PostCard({
   cid,
   content,
   subpost,
+  author,
+  username,
   upvotes,
   commentCount,
   timeAgo,
@@ -221,6 +224,21 @@ export function PostCard({
               <DropdownMenuItem>Hide</DropdownMenuItem>
               <DropdownMenuItem>Report</DropdownMenuItem>
               <DropdownMenuItem>Block Author</DropdownMenuItem>
+              {username === author && (
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      await api.delete(`/posts/${id}`)
+                      toast.success('Post deleted successfully')
+                    } catch (err) {
+                      toast.error('Failed to delete post')
+                      console.error(err)
+                    }
+                  }}
+                >
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

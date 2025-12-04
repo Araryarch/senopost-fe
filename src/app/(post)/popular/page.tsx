@@ -9,8 +9,11 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Layouts from '@/app/Layouts/layouts'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Page() {
+  const { user } = useAuth()
+
   const { data: posts, isLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: async () => {
@@ -37,6 +40,8 @@ export default function Page() {
     )
   }
 
+  const username = user?.name as string
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -49,6 +54,7 @@ export default function Page() {
                 <PostCard
                   key={post.id}
                   id={post.id}
+                  username={username}
                   cid={post.community}
                   title={post.title}
                   content={post.content}

@@ -150,7 +150,7 @@ export function Comment({
     try {
       const payload = {
         content: replyContent,
-        parentId: id, // id dari comment yang di-reply
+        parentId: id,
       }
 
       const res = await api.post(`/posts/${postId}/comments`, payload)
@@ -205,7 +205,6 @@ export function Comment({
           <span className="text-xs text-muted-foreground">• {timeAgo}</span>
         </div>
 
-        {/* Content */}
         {!isCollapsed && (
           <>
             <div className="ml-7 mb-2">
@@ -270,7 +269,6 @@ export function Comment({
               </Button>
             </div>
 
-            {/* Nested Replies */}
             {shouldNest && repliesList.length > 0 && (
               <div className="mt-2">
                 {repliesList.map((reply) => (
@@ -288,7 +286,6 @@ export function Comment({
               </div>
             )}
 
-            {/* Reply Form */}
             {showReplyForm && (
               <div className="mt-3 ml-7 p-3 bg-secondary/50 rounded-lg border border-border">
                 <Textarea

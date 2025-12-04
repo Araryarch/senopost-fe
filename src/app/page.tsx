@@ -10,8 +10,13 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import Layouts from './Layouts/layouts'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Page() {
+  const { user } = useAuth()
+
+  const username = user?.name as string
+
   const [activeTab, setActiveTab] = useState<string>('best')
 
   const { data: posts, isLoading } = useQuery({
@@ -76,6 +81,7 @@ export default function Page() {
               post && post.id ? (
                 <PostCard
                   key={post.id}
+                  username={username}
                   id={post.id}
                   cid={post.community.id}
                   title={post.title}

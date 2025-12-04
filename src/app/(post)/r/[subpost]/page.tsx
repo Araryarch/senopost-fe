@@ -219,6 +219,7 @@ export default function CommunityPage(props: {
                     <PostCard
                       key={post.id}
                       id={post.id}
+                      username={username}
                       cid={community.id}
                       title={post.title}
                       content={post.content || post.url}

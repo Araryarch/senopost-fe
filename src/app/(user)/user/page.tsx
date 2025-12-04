@@ -141,6 +141,7 @@ export default function UserProfilePage() {
                 ) : (
                   posts.map((post) => (
                     <PostCard
+                      username={username}
                       subpost={''}
                       author={''}
                       upvotes={0}

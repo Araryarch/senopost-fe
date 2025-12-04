@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react'
 import { PostCard } from '@/components/post-card'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { useAuth } from '@/hooks/use-auth'
 
 interface Post {
   id: string
@@ -35,6 +36,10 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
   const queryClient = useQueryClient()
+
+  const { user } = useAuth()
+
+  const username = user?.name as string
 
   // Resolve id from params
   useEffect(() => {
@@ -123,7 +128,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           </div>
         ) : post ? (
           <article className="rounded-xl overflow-hidden">
-            <PostCard {...post} />
+            <PostCard username={username} {...post} />
           </article>
         ) : (
           <div className="text-center p-4 text-red-500">Post not found</div>

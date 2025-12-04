@@ -20,6 +20,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface PostCardProps {
   id: string
@@ -47,6 +48,7 @@ export function PostCard({
   commentCount,
   timeAgo,
 }: PostCardProps) {
+  const queryClient = useQueryClient()
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
   const [voteCount, setVoteCount] = useState(0)
 
@@ -79,6 +81,10 @@ export function PostCard({
 
       await api.post(`/posts/${id}/votes`, { value })
       toast.success('add 1 votes success')
+
+      // Invalidate post queries to refresh vote counts
+      queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: ['post', id] })
     } catch (err) {
       console.error('Failed to vote:', err)
       setVoteStatus(previousVoteStatus)
@@ -189,7 +195,9 @@ export function PostCard({
               className="h-8 gap-1 rounded-full hover:bg-secondary"
             >
               <MessageSquare className="h-4 w-4" />
-              <span className="text-xs font-medium">{commentCount}</span>
+              <span className="text-xs font-medium">
+                {Number(commentCount) || 0}
+              </span>
             </Button>
           </Link>
 

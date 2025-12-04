@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 
 export interface CommentProps {
   replies: CommentProps[]
@@ -27,6 +28,7 @@ export interface CommentProps {
   timeAgo: string
   parentId?: string | null
   depth?: number
+  userVote?: 'up' | 'down' | null
 
   /** Props from parent */
   activeReplyId?: string | null
@@ -90,33 +92,36 @@ export function Comment({
   timeAgo,
   replies,
   depth = 0,
+  userVote,
   activeReplyId,
   onReplyClick,
   onCloseReply,
   postId,
 }: CommentProps) {
-  const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
-  const [currentVotes, setCurrentVotes] = useState(upvotes)
+  const queryClient = useQueryClient()
+  const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(
+    userVote || null,
+  )
+  const [currentVotes, setCurrentVotes] = useState(Number(upvotes) || 0)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [replyContent, setReplyContent] = useState('')
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
-
   const maxDepth = 4
   const shouldNest = depth < maxDepth
   const showReplyForm = activeReplyId === id
 
   const handleVote = async (type: 'up' | 'down') => {
-    if (!postId || !id) return
+    if (!id) return
 
     try {
       const value = type === 'up' ? 1 : -1
 
       if (voteStatus === type) {
-        await api.post(`/posts/${postId}/comments/${id}/votes`, { value: 0 })
+        await api.post(`/comments/${id}/votes`, { value: 0 })
         setVoteStatus(null)
         setCurrentVotes(currentVotes + (type === 'up' ? -1 : 1))
       } else {
-        await api.post(`/posts/${postId}/comments/${id}/votes`, { value })
+        await api.post(`/comments/${id}/votes`, { value })
         const prevStatus = voteStatus
         setVoteStatus(type)
         if (prevStatus === null) {
@@ -125,6 +130,9 @@ export function Comment({
           setCurrentVotes(currentVotes + value * 2)
         }
       }
+
+      // Invalidate comments query to refresh vote counts
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
     } catch (err) {
       console.error('Vote error:', err)
     }
@@ -144,7 +152,9 @@ export function Comment({
 
       setReplyContent('')
       if (onCloseReply) onCloseReply()
-      // Note: replies will be updated via parent component's query invalidation
+
+      // Invalidate comments query to refresh the comment tree with new reply
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
     } catch (err) {
       console.error('Reply error:', err)
     } finally {
@@ -193,60 +203,89 @@ export function Comment({
               <p className="text-sm leading-relaxed">{content}</p>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1 ml-7">
-              <div className="flex items-center">
+            {/* Actions - Bottom nav style similar to post card */}
+            <div className="flex items-center gap-2 ml-7 bg-secondary rounded-full px-2 py-1 mt-2">
+              {/* Vote Buttons */}
+              <div
+                className={cn(
+                  'flex items-center bg-secondary rounded-full transition-colors',
+                  voteStatus === 'up'
+                    ? 'bg-orange-500/10'
+                    : voteStatus === 'down'
+                      ? 'bg-blue-500/10'
+                      : '',
+                )}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-7 px-1 hover:bg-upvote/20',
-                    voteStatus === 'up' && 'text-upvote',
+                    'h-7 px-2 rounded-l-full hover:bg-orange-500/20',
+                    voteStatus === 'up' && 'text-orange-500',
                   )}
                   onClick={() => handleVote('up')}
                 >
-                  <ArrowBigUp className="h-4 w-4" />
+                  <ArrowBigUp
+                    className={cn(
+                      'h-4 w-4',
+                      voteStatus === 'up' && 'fill-current',
+                    )}
+                  />
                 </Button>
-
                 <span
                   className={cn(
-                    'text-xs font-medium min-w-[1.5rem] text-center',
-                    voteStatus === 'up' && 'text-upvote',
-                    voteStatus === 'down' && 'text-downvote',
+                    'text-xs font-semibold min-w-[2rem] text-center',
+                    voteStatus === 'up' && 'text-orange-500',
+                    voteStatus === 'down' && 'text-blue-500',
                   )}
                 >
                   {currentVotes}
                 </span>
-
                 <Button
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-7 px-1 hover:bg-downvote/20',
-                    voteStatus === 'down' && 'text-downvote',
+                    'h-7 px-2 rounded-r-full hover:bg-blue-500/20',
+                    voteStatus === 'down' && 'text-blue-500',
                   )}
                   onClick={() => handleVote('down')}
                 >
-                  <ArrowBigDown className="h-4 w-4" />
+                  <ArrowBigDown
+                    className={cn(
+                      'h-4 w-4',
+                      voteStatus === 'down' && 'fill-current',
+                    )}
+                  />
                 </Button>
               </div>
 
+              {/* Reply */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 text-xs"
+                className="h-7 gap-1 rounded-full hover:bg-secondary text-xs"
                 onClick={() => onReplyClick && onReplyClick(id)}
               >
                 <MessageSquare className="h-3.5 w-3.5" />
                 Reply
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+              {/* Share */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 rounded-full hover:bg-secondary text-xs"
+              >
                 <Share2 className="h-3.5 w-3.5" />
                 Share
               </Button>
 
-              <Button variant="ghost" size="sm" className="h-7 px-1">
+              {/* More */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 rounded-full hover:bg-secondary ml-auto"
+              >
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </div>

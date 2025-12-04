@@ -29,6 +29,7 @@ interface FlatComment {
   upvotes: number
   timeAgo: string
   parentId: string | null
+  userVote?: 'up' | 'down' | null
 }
 
 export default function PostPage(props: { params: Promise<{ id: string }> }) {

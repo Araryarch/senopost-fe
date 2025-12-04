@@ -1,6 +1,6 @@
 'use client'
 
-import { Comment } from '@/components/comment'
+import { Comment, CommentProps, buildCommentTree } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -22,49 +22,13 @@ interface Post {
   timeAgo: string
 }
 
-interface CommentItem {
+interface FlatComment {
   id: string
+  author: string
+  content: string
+  upvotes: number
+  timeAgo: string
   parentId: string | null
-}
-
-// Helper function untuk convert flat comments ke nested tree
-function buildCommentTree(flatComments: CommentItem[]): CommentTree[] {
-  const commentMap = new Map<string, CommentTree>()
-  const roots: CommentTree[] = []
-
-  // Create nodes
-  flatComments.forEach((comment) => {
-    commentMap.set(comment.id, {
-      id: comment.id,
-      parentId: comment.parentId,
-      replies: [],
-    })
-  })
-
-  // Build tree
-  flatComments.forEach((comment) => {
-    const commentNode = commentMap.get(comment.id)
-    if (!commentNode) return
-
-    if (comment.parentId === null || comment.parentId === undefined) {
-      roots.push(commentNode)
-    } else {
-      const parent = commentMap.get(comment.parentId)
-      if (parent) {
-        parent.replies.push(commentNode)
-      } else {
-        roots.push(commentNode)
-      }
-    }
-  })
-
-  return roots
-}
-
-interface CommentTree {
-  id: string
-  parentId: string | null
-  replies: CommentTree[]
 }
 
 export default function PostPage(props: { params: Promise<{ id: string }> }) {
@@ -93,19 +57,18 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     enabled: !!postId,
   })
 
-  // Fetch all comments dan build tree
   const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
-    CommentItem[]
+    FlatComment[]
   >({
     queryKey: ['comments', postId],
     queryFn: async () => {
-      const res = await api.get<CommentItem[]>(`/posts/${postId}/comments`)
+      const res = await api.get<FlatComment[]>(`/posts/${postId}/comments`)
       return res.data
     },
     enabled: !!postId,
   })
 
-  const commentTree: CommentTree[] = buildCommentTree(flatComments)
+  const commentTree: CommentProps[] = buildCommentTree(flatComments)
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -121,22 +84,17 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     },
   })
 
-  // Helper untuk render tree recursively
-  const renderCommentTree = (tree: CommentTree[]): React.ReactNode => {
-    return tree.map((node) => (
-      <Comment
-        key={node.id}
-        id={node.id}
-        parentId={node.parentId}
-        postId={postId || undefined}
-        activeReplyId={activeReplyId}
-        onReplyClick={handleReplyClick}
-        onCloseReply={closeReplyForm}
-      />
-    ))
-  }
-
   const authorUser = post?.author || ''
+
+  const mapCommentsToProps = (
+    comments: CommentProps[],
+    postId: string,
+  ): CommentProps[] =>
+    comments.map((c) => ({
+      ...c,
+      postId,
+      replies: c.replies ? mapCommentsToProps(c.replies, postId) : [],
+    }))
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,6 +131,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           <div className="text-center p-4 text-red-500">Post not found</div>
         )}
 
+        {/* Top-level Comment Form */}
         <div className="bg-card rounded-xl border border-border p-4 mt-4">
           <div className="flex gap-3">
             <Avatar className="h-8 w-8">
@@ -207,6 +166,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
+        {/* Comments List */}
         <div className="bg-card rounded-xl border border-border mt-4 p-4">
           {commentsLoading ? (
             <p className="text-center text-muted-foreground">
@@ -215,7 +175,19 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           ) : commentTree.length === 0 ? (
             <p className="text-center text-muted-foreground">No comments yet</p>
           ) : (
-            <div className="space-y-2">{renderCommentTree(commentTree)}</div>
+            <div className="space-y-2">
+              {postId &&
+                mapCommentsToProps(commentTree, postId).map((comment) => (
+                  <Comment
+                    key={comment.id}
+                    postId={postId}
+                    activeReplyId={activeReplyId}
+                    onReplyClick={handleReplyClick}
+                    onCloseReply={closeReplyForm}
+                    {...comment}
+                  />
+                ))}
+            </div>
           )}
         </div>
       </main>

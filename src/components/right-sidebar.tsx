@@ -100,7 +100,7 @@ export function RightSidebar() {
               popularPosts.map((post) => (
                 <Link
                   key={post.id}
-                  href={`/r/${post.subpost}/${post.id}`}
+                  href={`/r/${post.subpost}/comments/${post.id}`}
                   className="block hover:bg-secondary p-2 rounded-lg -mx-2 transition-colors"
                 >
                   <p className="text-sm font-medium line-clamp-2 mb-1">

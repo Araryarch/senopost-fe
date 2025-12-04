@@ -27,6 +27,7 @@ import React, { useEffect, useState } from 'react'
 import Layouts from '@/app/Layouts/layouts'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 type Post = {
   id: string
@@ -55,6 +56,8 @@ type User = {
 }
 
 export default function UserProfilePage() {
+  const router = useRouter()
+
   const { user: rawUser, loading } = useAuth()
   const user = rawUser as User | null
   const queryClient = useQueryClient()
@@ -181,7 +184,7 @@ export default function UserProfilePage() {
                   posts.map((post) => (
                     <PostCard
                       username={username}
-                      subpost={''}
+                      subpost={'users'}
                       author={username}
                       upvotes={0}
                       commentCount={0}
@@ -225,7 +228,7 @@ export default function UserProfilePage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() =>
-                                  console.log('Edit community', community.id)
+                                  router.push(`/r/${community.id}`)
                                 }
                               >
                                 <Edit className="mr-2 h-4 w-4" />

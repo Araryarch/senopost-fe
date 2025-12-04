@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowBigUp,
   ArrowBigDown,
@@ -20,91 +21,65 @@ import api from '@/lib/api'
 
 export interface CommentProps {
   id: string
-  author: string
-  content: string
-  upvotes: number
-  timeAgo: string
-  replies: CommentProps[]
-  depth?: number
   parentId?: string | null
+  depth?: number
 
   /** Props from parent */
   activeReplyId?: string | null
   onReplyClick?: (id: string) => void
   onCloseReply?: () => void
-  postId?: string // untuk API reply
-  onVote?: (commentId: string, type: 'up' | 'down' | 'none') => void
-}
-
-interface FlatComment {
-  id: string
-  author: string
-  content: string
-  upvotes: number
-  timeAgo: string
-  parentId: string | null
-}
-
-// Helper function untuk convert flat comments ke nested tree
-export function buildCommentTree(flatComments: FlatComment[]): CommentProps[] {
-  const commentMap = new Map<string, CommentProps>()
-  const roots: CommentProps[] = []
-
-  flatComments.forEach((comment) => {
-    commentMap.set(comment.id, {
-      id: comment.id,
-      author: comment.author,
-      content: comment.content,
-      upvotes: comment.upvotes,
-      timeAgo: comment.timeAgo,
-      parentId: comment.parentId,
-      replies: [],
-    })
-  })
-
-  flatComments.forEach((comment) => {
-    const commentNode = commentMap.get(comment.id)
-    if (!commentNode) return
-
-    if (comment.parentId === null || comment.parentId === undefined) {
-      roots.push(commentNode)
-    } else {
-      const parent = commentMap.get(comment.parentId)
-      if (parent) {
-        parent.replies.push(commentNode)
-      } else {
-        roots.push(commentNode)
-      }
-    }
-  })
-
-  return roots
+  postId?: string
 }
 
 export function Comment({
   id,
-  author = 'Anonymous',
-  content,
-  upvotes,
-  timeAgo,
-  replies = [],
   depth = 0,
   activeReplyId,
   onReplyClick,
   onCloseReply,
   postId,
-  onVote,
-}: CommentProps & { replyAuthor?: string }) {
+}: CommentProps) {
+  const [author, setAuthor] = useState('Anonymous')
+  const [content, setContent] = useState('')
+  const [, setUpvotes] = useState(0)
+  const [timeAgo, setTimeAgo] = useState('')
+  const [replies, setReplies] = useState<string[]>([])
+
+  const [isLoading, setIsLoading] = useState(true)
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
-  const [currentVotes, setCurrentVotes] = useState(upvotes || 0)
+  const [currentVotes, setCurrentVotes] = useState(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [repliesList, setRepliesList] = useState(replies)
   const [replyContent, setReplyContent] = useState('')
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
 
   const maxDepth = 4
   const shouldNest = depth < maxDepth
   const showReplyForm = activeReplyId === id
+
+  useEffect(() => {
+    fetchCommentData()
+  }, [id])
+
+  const fetchCommentData = async () => {
+    try {
+      setIsLoading(true)
+      const response = await api.get(`/comments/${id}`)
+      const data = response.data
+
+      setAuthor(data.author || 'Anonymous')
+      setContent(data.content || '')
+      setUpvotes(data.upvotes || 0)
+      setCurrentVotes(data.upvotes || 0)
+      setTimeAgo(data.timeAgo || '')
+
+      // Expecting replies as array of comment IDs
+      setReplies(data.replies || [])
+    } catch (err) {
+      console.error('Failed to fetch comment:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleVote = async (type: 'up' | 'down') => {
     if (!postId || !id) return
@@ -116,7 +91,6 @@ export function Comment({
         await api.post(`/posts/${postId}/comments/${id}/votes`, { value: 0 })
         setVoteStatus(null)
         setCurrentVotes(currentVotes + (type === 'up' ? -1 : 1))
-        if (onVote) onVote(id, 'none')
       } else {
         await api.post(`/posts/${postId}/comments/${id}/votes`, { value })
         const prevStatus = voteStatus
@@ -126,14 +100,13 @@ export function Comment({
         } else {
           setCurrentVotes(currentVotes + value * 2)
         }
-        if (onVote) onVote(id, type)
       }
     } catch (err) {
       console.error('Vote error:', err)
     }
   }
 
-  const handleSubmitReply = async (replyAuthor: string) => {
+  const handleSubmitReply = async () => {
     if (!replyContent.trim() || !postId) return
 
     setIsSubmittingReply(true)
@@ -145,13 +118,8 @@ export function Comment({
 
       const res = await api.post(`/posts/${postId}/comments`, payload)
 
-      const newReply: CommentProps = {
-        ...res.data,
-        author: replyAuthor, // pakai author yang dikirim dari parent
-        replies: [],
-      }
-
-      setRepliesList([...repliesList, newReply])
+      // Tambah reply ID ke list
+      setReplies([...replies, res.data.id])
       setReplyContent('')
       if (onCloseReply) onCloseReply()
     } catch (err) {
@@ -159,6 +127,22 @@ export function Comment({
     } finally {
       setIsSubmittingReply(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div
+        className={cn(
+          'relative py-2',
+          depth > 0 &&
+            'ml-4 pl-4 border-l-2 border-border hover:border-muted-foreground/50',
+        )}
+      >
+        <div className="ml-7 py-2 text-sm text-muted-foreground animate-pulse">
+          Loading comment...
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -260,23 +244,25 @@ export function Comment({
               </Button>
             </div>
 
-            {shouldNest && repliesList.length > 0 && (
+            {/* Nested Replies - recursively render child comments by ID */}
+            {shouldNest && replies.length > 0 && (
               <div className="mt-2">
-                {repliesList.map((reply) => (
+                {replies.map((replyId) => (
                   <Comment
-                    key={reply.id}
-                    {...reply}
+                    key={replyId}
+                    id={replyId}
+                    parentId={id}
                     depth={depth + 1}
                     postId={postId}
                     activeReplyId={activeReplyId}
                     onReplyClick={onReplyClick}
                     onCloseReply={onCloseReply}
-                    onVote={onVote}
                   />
                 ))}
               </div>
             )}
 
+            {/* Reply Form */}
             {showReplyForm && (
               <div className="mt-3 ml-7 p-3 bg-secondary/50 rounded-lg border border-border">
                 <Textarea
@@ -298,7 +284,7 @@ export function Comment({
 
                   <Button
                     size="sm"
-                    onClick={() => handleSubmitReply(author)} // kirim author dari prop
+                    onClick={handleSubmitReply}
                     disabled={!replyContent.trim() || isSubmittingReply}
                   >
                     <Send className="h-3.5 w-3.5 mr-1" />

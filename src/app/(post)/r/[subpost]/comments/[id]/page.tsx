@@ -1,6 +1,6 @@
 'use client'
 
-import { Comment, CommentProps, buildCommentTree } from '@/components/comment'
+import { Comment } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -22,12 +22,8 @@ interface Post {
   timeAgo: string
 }
 
-interface FlatComment {
+interface CommentItem {
   id: string
-  author: string
-  content: string
-  upvotes: number
-  timeAgo: string
   parentId: string | null
 }
 
@@ -57,18 +53,18 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     enabled: !!postId,
   })
 
-  const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
-    FlatComment[]
+  // Fetch hanya top-level comments (parentId === null)
+  const { data: topLevelComments = [], isLoading: commentsLoading } = useQuery<
+    CommentItem[]
   >({
     queryKey: ['comments', postId],
     queryFn: async () => {
-      const res = await api.get<FlatComment[]>(`/posts/${postId}/comments`)
-      return res.data
+      const res = await api.get<CommentItem[]>(`/posts/${postId}/comments`)
+      // Filter hanya top-level comments
+      return res.data.filter((c) => c.parentId === null)
     },
     enabled: !!postId,
   })
-
-  const commentTree: CommentProps[] = buildCommentTree(flatComments)
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -84,15 +80,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     },
   })
 
-  const mapCommentsToProps = (
-    comments: CommentProps[],
-    postId: string,
-  ): CommentProps[] =>
-    comments.map((c) => ({
-      ...c,
-      postId,
-      replies: c.replies ? mapCommentsToProps(c.replies, postId) : [],
-    }))
+  const authorUser = post?.author || ''
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,7 +107,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
               subpost={post.community}
               id={post.id}
               title={post.title}
-              author={post.author}
+              author={authorUser}
               upvotes={post.upvotes}
               commentCount={post.commentCount}
               timeAgo={post.timeAgo}
@@ -170,21 +158,21 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
             <p className="text-center text-muted-foreground">
               Loading comments...
             </p>
-          ) : commentTree.length === 0 ? (
+          ) : topLevelComments.length === 0 ? (
             <p className="text-center text-muted-foreground">No comments yet</p>
           ) : (
             <div className="space-y-2">
-              {postId &&
-                mapCommentsToProps(commentTree, postId).map((comment) => (
-                  <Comment
-                    key={comment.id}
-                    {...comment}
-                    postId={postId}
-                    activeReplyId={activeReplyId}
-                    onReplyClick={handleReplyClick}
-                    onCloseReply={closeReplyForm}
-                  />
-                ))}
+              {topLevelComments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  id={comment.id}
+                  parentId={comment.parentId}
+                  postId={postId || undefined}
+                  activeReplyId={activeReplyId}
+                  onReplyClick={handleReplyClick}
+                  onCloseReply={closeReplyForm}
+                />
+              ))}
             </div>
           )}
         </div>

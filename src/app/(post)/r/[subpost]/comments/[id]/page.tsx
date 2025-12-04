@@ -4,119 +4,85 @@ import { Comment } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  ArrowBigUp,
-  ArrowBigDown,
-  MessageSquare,
-  Share2,
-  Bookmark,
-  MoreHorizontal,
-  ArrowLeft,
-} from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { PostCard } from '@/components/post-card'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '@/lib/api'
 
-const mockPost = {
-  id: '1',
-  title: 'Just released my first open source project after 6 months of work!',
-  content: `I've been working on this project for the past 6 months and finally decided to open source it. It's a React component library that focuses on accessibility and performance.
-
-The library includes over 50 components, all fully accessible and tested with screen readers. I've also included comprehensive documentation and examples.
-
-Key features:
-- Full TypeScript support
-- Tree-shakeable exports
-- CSS-in-JS with zero runtime
-- Extensive theming capabilities
-- Built-in dark mode support
-
-Would love to get some feedback from the community! Feel free to check out the GitHub repo and let me know what you think.`,
-  imageUrl: '/react-code-editor.png',
-  subreddit: 'programming',
-  subredditIcon: '/programming-icon.jpg',
-  author: 'dev_enthusiast',
-  upvotes: 15420,
-  commentCount: 423,
-  timeAgo: '5 hours ago',
+interface Post {
+  id: string
+  title: string
+  subpost: string
+  author: string
+  upvotes: number
+  commentCount: number
+  timeAgo: string
 }
 
-const mockComments = [
-  {
-    id: 'c1',
-    author: 'react_dev_pro',
-    content:
-      "This is amazing work! I've been looking for a library like this. The accessibility focus is exactly what we need more of in the React ecosystem.",
-    upvotes: 234,
-    timeAgo: '4 hours ago',
-    replies: [
-      {
-        id: 'c1r1',
-        author: 'dev_enthusiast',
-        content:
-          "Thank you so much! Accessibility was my main priority from day one. I'm glad it resonates with the community.",
-        upvotes: 89,
-        timeAgo: '3 hours ago',
-        replies: [
-          {
-            id: 'c1r1r1',
-            author: 'a11y_advocate',
-            content:
-              'Have you considered adding ARIA live regions for dynamic content? That would be a great addition!',
-            upvotes: 45,
-            timeAgo: '2 hours ago',
-            replies: [],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'c2',
-    author: 'senior_engineer',
-    content:
-      'The documentation looks really thorough. One suggestion: maybe add some real-world examples showing how to integrate with popular state management libraries?',
-    upvotes: 156,
-    timeAgo: '3 hours ago',
-    replies: [],
-  },
-  {
-    id: 'c3',
-    author: 'ui_designer',
-    content:
-      'The default styling is beautiful! Love the attention to detail in the animations. How customizable is the theming system?',
-    upvotes: 98,
-    timeAgo: '2 hours ago',
-    replies: [
-      {
-        id: 'c3r1',
-        author: 'dev_enthusiast',
-        content:
-          'The theming is fully customizable! You can override any CSS variable or use the theme provider to create completely custom themes. Check out the theming docs for examples.',
-        upvotes: 67,
-        timeAgo: '1 hour ago',
-        replies: [],
-      },
-    ],
-  },
-]
+interface CommentType {
+  id: string
+  author: string
+  content: string
+  upvotes: number
+  timeAgo: string
+  replies?: CommentType[]
+}
 
-import React from 'react'
-
-export default function PostPage(props: {
-  params: Promise<{ subreddit: string; id: string }>
-}) {
-  const { subreddit } = React.use(props.params)
-
+export default function PostPage(props: { params: Promise<{ id: string }> }) {
+  const [id, setId] = useState<string | null>(null)
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
+  const [newComment, setNewComment] = useState('')
+  const queryClient = useQueryClient()
 
-  const handleReplyClick = (id: string) => {
-    if (!activeReplyId) {
-      setActiveReplyId(id)
-    }
+  // Resolve id from params
+  useEffect(() => {
+    props.params.then((p) => setId(p.id))
+  }, [props.params])
+
+  const handleReplyClick = (commentId: string) => {
+    if (!activeReplyId) setActiveReplyId(commentId)
   }
-
   const closeReplyForm = () => setActiveReplyId(null)
+
+  // Fetch post
+  const {
+    data: post,
+    isLoading: postLoading,
+    error: postError,
+  } = useQuery<Post | null>({
+    queryKey: ['post', id],
+    queryFn: async () => {
+      const res = await api.get<Post[]>('/posts', { params: { id } })
+      return res.data[0] || null
+    },
+    enabled: !!id, // hanya fetch kalau id sudah ada
+  })
+
+  // Fetch comments
+  const { data: comments = [], isLoading: commentsLoading } = useQuery<
+    CommentType[]
+  >({
+    queryKey: ['comments', id],
+    queryFn: async () => {
+      const res = await api.get<CommentType[]>(`/posts/${id}/comments`)
+      return res.data
+    },
+    enabled: !!id,
+  })
+
+  // Mutation to post new comment
+  const commentMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await api.post(`/posts/${id}/comments`, { content })
+      return res.data
+    },
+    onSuccess: () => {
+      setNewComment('')
+      queryClient.invalidateQueries({ queryKey: ['comments', id] })
+    },
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -130,116 +96,21 @@ export default function PostPage(props: {
         </Link>
 
         {/* Post */}
-        <article className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="p-4">
-            {/* Post Header */}
-            <div className="flex items-center gap-2 mb-3">
-              <Link
-                href={`/r/${subreddit}`}
-                className="flex items-center gap-2 hover:underline"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-sm font-bold text-primary-foreground">
-                    {subreddit.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold">r/{subreddit}</span>
-              </Link>
-              <span className="text-sm text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">
-                Posted by u/{mockPost.author}
-              </span>
-              <span className="text-sm text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">
-                {mockPost.timeAgo}
-              </span>
-            </div>
-
-            {/* Post Title */}
-            <h1 className="text-xl font-bold mb-3">{mockPost.title}</h1>
-
-            {/* Post Content */}
-            <div className="prose prose-sm max-w-none mb-4">
-              {mockPost.content.split('\n\n').map((paragraph, index) => (
-                <p key={index} className="mb-3 text-foreground">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-
-            {/* Post Image */}
-            {mockPost.imageUrl && (
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                <Image
-                  src={mockPost.imageUrl || '/placeholder.svg'}
-                  alt={mockPost.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-
-            {/* Post Actions */}
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
-              <div className="flex items-center bg-secondary rounded-full">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 rounded-l-full hover:bg-upvote/20"
-                >
-                  <ArrowBigUp className="h-5 w-5" />
-                </Button>
-                <span className="text-sm font-semibold min-w-[3rem] text-center">
-                  {(mockPost.upvotes / 1000).toFixed(1)}k
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 rounded-r-full hover:bg-downvote/20"
-                >
-                  <ArrowBigDown className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 rounded-full hover:bg-secondary"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {mockPost.commentCount} Comments
-                </span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 rounded-full hover:bg-secondary"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="text-sm font-medium">Share</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-2 rounded-full hover:bg-secondary"
-              >
-                <Bookmark className="h-4 w-4" />
-                <span className="text-sm font-medium">Save</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 rounded-full hover:bg-secondary ml-auto"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </div>
+        {postLoading ? (
+          <div className="text-center p-4 text-muted-foreground">
+            Loading post...
           </div>
-        </article>
+        ) : postError ? (
+          <div className="text-center p-4 text-red-500">
+            Failed to load post
+          </div>
+        ) : post ? (
+          <article className="rounded-xl overflow-hidden">
+            <PostCard {...post} />
+          </article>
+        ) : (
+          <div className="text-center p-4 text-red-500">Post not found</div>
+        )}
 
         {/* Comment Form */}
         <div className="bg-card rounded-xl border border-border p-4 mt-4">
@@ -247,35 +118,56 @@ export default function PostPage(props: {
             <Avatar className="h-8 w-8">
               <AvatarImage src="" />
               <AvatarFallback className="bg-primary text-primary-foreground">
-                U
+                A
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <Textarea
                 placeholder="What are your thoughts?"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
                 className="min-h-[100px] resize-none border-border focus-visible:ring-primary"
               />
+              {commentMutation.isError && (
+                <p className="text-red-500 text-sm mt-1">
+                  Failed to post comment. Try again.
+                </p>
+              )}
               <div className="flex justify-end mt-2">
-                <Button size="sm" className="rounded-full">
-                  Comment
+                <Button
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => commentMutation.mutate(newComment)}
+                  disabled={commentMutation.isPending || !newComment.trim()}
+                >
+                  {commentMutation.isPending ? 'Posting...' : 'Comment'}
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Comments List */}
         <div className="bg-card rounded-xl border border-border mt-4 p-4">
-          <div className="space-y-2">
-            {mockComments.map((comment) => (
-              <Comment
-                key={comment.id}
-                {...comment}
-                activeReplyId={activeReplyId}
-                onReplyClick={handleReplyClick}
-                onCloseReply={closeReplyForm}
-              />
-            ))}
-          </div>
+          {commentsLoading ? (
+            <p className="text-center text-muted-foreground">
+              Loading comments...
+            </p>
+          ) : comments.length === 0 ? (
+            <p className="text-center text-muted-foreground">No comments yet</p>
+          ) : (
+            <div className="space-y-2">
+              {comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  {...comment}
+                  activeReplyId={activeReplyId}
+                  onReplyClick={handleReplyClick}
+                  onCloseReply={closeReplyForm}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

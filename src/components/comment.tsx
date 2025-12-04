@@ -26,7 +26,7 @@ export interface CommentProps {
   replies?: CommentProps[]
   depth?: number
 
-  /** Added props */
+  /** Props from parent */
   activeReplyId?: string | null
   onReplyClick?: (id: string) => void
   onCloseReply?: () => void
@@ -34,7 +34,7 @@ export interface CommentProps {
 
 export function Comment({
   id,
-  author,
+  author = 'Unknown',
   content,
   upvotes,
   timeAgo,
@@ -49,12 +49,13 @@ export function Comment({
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
   const [currentVotes, setCurrentVotes] = useState(upvotes)
   const [isCollapsed, setIsCollapsed] = useState(false)
-
-  const showReplyForm = activeReplyId === id
   const [replyContent, setReplyContent] = useState('')
-
   const [repliesList, setRepliesList] = useState(replies)
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
+
+  const showReplyForm = activeReplyId === id
+  const maxDepth = 4
+  const shouldNest = depth < maxDepth
 
   const handleVote = (type: 'up' | 'down') => {
     if (voteStatus === type) {
@@ -91,9 +92,6 @@ export function Comment({
     }
   }
 
-  const maxDepth = 4
-  const shouldNest = depth < maxDepth
-
   return (
     <div
       className={cn(
@@ -121,11 +119,11 @@ export function Comment({
           <Avatar className="h-6 w-6">
             <AvatarImage src="/avatar-default.jpg" />
             <AvatarFallback className="text-xs">
-              {author.charAt(0).toUpperCase()}
+              {(author?.charAt(0) || '?').toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-medium">{author}</span>
+          <span className="text-sm font-medium">{author || 'Unknown'}</span>
           <span className="text-xs text-muted-foreground">• {timeAgo}</span>
         </div>
 

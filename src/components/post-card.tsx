@@ -130,7 +130,7 @@ export function PostCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 bg-secondary">
           {/* Vote Buttons */}
           <div
             className={cn(

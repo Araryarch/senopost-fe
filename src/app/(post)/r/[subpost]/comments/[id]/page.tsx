@@ -27,6 +27,46 @@ interface CommentItem {
   parentId: string | null
 }
 
+// Helper function untuk convert flat comments ke nested tree
+function buildCommentTree(flatComments: CommentItem[]): CommentTree[] {
+  const commentMap = new Map<string, CommentTree>()
+  const roots: CommentTree[] = []
+
+  // Create nodes
+  flatComments.forEach((comment) => {
+    commentMap.set(comment.id, {
+      id: comment.id,
+      parentId: comment.parentId,
+      replies: [],
+    })
+  })
+
+  // Build tree
+  flatComments.forEach((comment) => {
+    const commentNode = commentMap.get(comment.id)
+    if (!commentNode) return
+
+    if (comment.parentId === null || comment.parentId === undefined) {
+      roots.push(commentNode)
+    } else {
+      const parent = commentMap.get(comment.parentId)
+      if (parent) {
+        parent.replies.push(commentNode)
+      } else {
+        roots.push(commentNode)
+      }
+    }
+  })
+
+  return roots
+}
+
+interface CommentTree {
+  id: string
+  parentId: string | null
+  replies: CommentTree[]
+}
+
 export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const [postId, setPostId] = useState<string | null>(null)
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
@@ -53,18 +93,19 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     enabled: !!postId,
   })
 
-  // Fetch hanya top-level comments (parentId === null)
-  const { data: topLevelComments = [], isLoading: commentsLoading } = useQuery<
+  // Fetch all comments dan build tree
+  const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
     CommentItem[]
   >({
     queryKey: ['comments', postId],
     queryFn: async () => {
       const res = await api.get<CommentItem[]>(`/posts/${postId}/comments`)
-      // Filter hanya top-level comments
-      return res.data.filter((c) => c.parentId === null)
+      return res.data
     },
     enabled: !!postId,
   })
+
+  const commentTree: CommentTree[] = buildCommentTree(flatComments)
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -79,6 +120,21 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] })
     },
   })
+
+  // Helper untuk render tree recursively
+  const renderCommentTree = (tree: CommentTree[]): React.ReactNode => {
+    return tree.map((node) => (
+      <Comment
+        key={node.id}
+        id={node.id}
+        parentId={node.parentId}
+        postId={postId || undefined}
+        activeReplyId={activeReplyId}
+        onReplyClick={handleReplyClick}
+        onCloseReply={closeReplyForm}
+      />
+    ))
+  }
 
   const authorUser = post?.author || ''
 
@@ -117,7 +173,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           <div className="text-center p-4 text-red-500">Post not found</div>
         )}
 
-        {/* Top-level Comment Form */}
         <div className="bg-card rounded-xl border border-border p-4 mt-4">
           <div className="flex gap-3">
             <Avatar className="h-8 w-8">
@@ -152,28 +207,15 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           </div>
         </div>
 
-        {/* Comments List */}
         <div className="bg-card rounded-xl border border-border mt-4 p-4">
           {commentsLoading ? (
             <p className="text-center text-muted-foreground">
               Loading comments...
             </p>
-          ) : topLevelComments.length === 0 ? (
+          ) : commentTree.length === 0 ? (
             <p className="text-center text-muted-foreground">No comments yet</p>
           ) : (
-            <div className="space-y-2">
-              {topLevelComments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  id={comment.id}
-                  parentId={comment.parentId}
-                  postId={postId || undefined}
-                  activeReplyId={activeReplyId}
-                  onReplyClick={handleReplyClick}
-                  onCloseReply={closeReplyForm}
-                />
-              ))}
-            </div>
+            <div className="space-y-2">{renderCommentTree(commentTree)}</div>
           )}
         </div>
       </main>

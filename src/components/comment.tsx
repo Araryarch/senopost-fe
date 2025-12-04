@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import axios from 'axios'
+import api from '@/lib/api'
 
 export interface CommentProps {
   id: string
@@ -24,14 +24,67 @@ export interface CommentProps {
   content: string
   upvotes: number
   timeAgo: string
-  replies?: CommentProps[]
+  replies: CommentProps[]
   depth?: number
+  parentId?: string | null
 
   /** Props from parent */
   activeReplyId?: string | null
   onReplyClick?: (id: string) => void
   onCloseReply?: () => void
-  postId: string // untuk API reply
+  postId?: string // untuk API reply
+  onVote?: (commentId: string, type: 'up' | 'down' | 'none') => void // Optional for parent propagation if needed
+}
+
+interface FlatComment {
+  id: string
+  author: string
+  content: string
+  upvotes: number
+  timeAgo: string
+  parentId: string | null
+}
+
+// Helper function untuk convert flat comments ke nested tree
+export function buildCommentTree(flatComments: FlatComment[]): CommentProps[] {
+  const commentMap = new Map<string, CommentProps>()
+  const roots: CommentProps[] = []
+
+  // First pass: create map of all comments with empty replies array
+  flatComments.forEach((comment) => {
+    commentMap.set(comment.id, {
+      id: comment.id,
+      author: comment.author,
+      content: comment.content,
+      upvotes: comment.upvotes,
+      timeAgo: comment.timeAgo,
+      parentId: comment.parentId,
+      replies: [],
+    })
+  })
+
+  // Second pass: build tree structure
+  flatComments.forEach((comment) => {
+    const commentNode = commentMap.get(comment.id)
+
+    if (!commentNode) return
+
+    if (comment.parentId === null || comment.parentId === undefined) {
+      // Root comment (top-level)
+      roots.push(commentNode)
+    } else {
+      // Child comment - add to parent's replies array
+      const parent = commentMap.get(comment.parentId)
+      if (parent) {
+        parent.replies.push(commentNode)
+      } else {
+        // If parent not found, treat as root
+        roots.push(commentNode)
+      }
+    }
+  })
+
+  return roots
 }
 
 export function Comment({
@@ -46,9 +99,10 @@ export function Comment({
   onReplyClick,
   onCloseReply,
   postId,
+  onVote,
 }: CommentProps) {
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
-  const [currentVotes, setCurrentVotes] = useState(upvotes)
+  const [currentVotes, setCurrentVotes] = useState(upvotes || 0)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [repliesList, setRepliesList] = useState(replies)
   const [replyContent, setReplyContent] = useState('')
@@ -58,35 +112,59 @@ export function Comment({
   const shouldNest = depth < maxDepth
   const showReplyForm = activeReplyId === id
 
-  const handleVote = (type: 'up' | 'down') => {
-    if (voteStatus === type) {
-      setVoteStatus(null)
-      setCurrentVotes(upvotes)
-    } else {
-      setVoteStatus(type)
-      setCurrentVotes(type === 'up' ? upvotes + 1 : upvotes - 1)
+  const handleVote = async (type: 'up' | 'down') => {
+    if (!postId || !id) return
+
+    try {
+      const value = type === 'up' ? 1 : -1
+
+      if (voteStatus === type) {
+        // Remove vote
+        await api.post(`/posts/${postId}/comments/${id}/votes`, { value: 0 })
+        setVoteStatus(null)
+        setCurrentVotes(currentVotes + (type === 'up' ? -1 : 1))
+        if (onVote) onVote(id, 'none')
+      } else {
+        // Add or change vote
+        await api.post(`/posts/${postId}/comments/${id}/votes`, { value })
+        const prevStatus = voteStatus
+        setVoteStatus(type)
+
+        if (prevStatus === null) {
+          setCurrentVotes(currentVotes + value)
+        } else {
+          // Changing from opposite vote
+          setCurrentVotes(currentVotes + value * 2)
+        }
+        if (onVote) onVote(id, type)
+      }
+    } catch (err) {
+      console.error('Vote error:', err)
     }
   }
 
   const handleSubmitReply = async () => {
-    if (!replyContent.trim()) return
+    if (!replyContent.trim() || !postId) return
 
     setIsSubmittingReply(true)
     try {
       const payload = {
         content: replyContent,
-        parentId: id, // parentId = id comment ini
+        parentId: id, // id dari comment yang di-reply
       }
 
-      const res = await axios.post(`/posts/${postId}/comments`, payload)
-      const newReply: CommentProps = res.data
+      const res = await api.post(`/posts/${postId}/comments`, payload)
+      const newReply: CommentProps = {
+        ...res.data,
+        replies: [],
+      }
 
       setRepliesList([...repliesList, newReply])
       setReplyContent('')
 
       if (onCloseReply) onCloseReply()
     } catch (err) {
-      console.error(err)
+      console.error('Reply error:', err)
     } finally {
       setIsSubmittingReply(false)
     }
@@ -204,6 +282,7 @@ export function Comment({
                     activeReplyId={activeReplyId}
                     onReplyClick={onReplyClick}
                     onCloseReply={onCloseReply}
+                    onVote={onVote}
                   />
                 ))}
               </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Comment, CommentProps } from '@/components/comment'
+import { Comment, CommentProps, buildCommentTree } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -21,13 +21,13 @@ interface Post {
   timeAgo: string
 }
 
-interface CommentType {
+interface FlatComment {
   id: string
   author: string
   content: string
   upvotes: number
   timeAgo: string
-  replies?: CommentType[]
+  parentId: string | null
 }
 
 export default function PostPage(props: { params: Promise<{ id: string }> }) {
@@ -60,17 +60,20 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   console.log({ post })
 
-  // Fetch comments
-  const { data: comments = [], isLoading: commentsLoading } = useQuery<
-    CommentType[]
+  // Fetch comments (assuming flat list from API)
+  const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
+    FlatComment[]
   >({
     queryKey: ['comments', postId],
     queryFn: async () => {
-      const res = await api.get<CommentType[]>(`/posts/${postId}/comments`)
+      const res = await api.get<FlatComment[]>(`/posts/${postId}/comments`)
       return res.data
     },
     enabled: !!postId,
   })
+
+  // Build nested tree from flat comments
+  const commentTree: CommentProps[] = buildCommentTree(flatComments)
 
   // Mutation to post new top-level comment
   const commentMutation = useMutation({
@@ -89,7 +92,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   // Helper: map API comments to CommentProps (add postId to nested replies)
   const mapCommentsToProps = (
-    comments: CommentType[],
+    comments: CommentProps[],
     postId: string,
   ): CommentProps[] =>
     comments.map((c) => ({
@@ -167,15 +170,16 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
             <p className="text-center text-muted-foreground">
               Loading comments...
             </p>
-          ) : comments.length === 0 ? (
+          ) : commentTree.length === 0 ? (
             <p className="text-center text-muted-foreground">No comments yet</p>
           ) : (
             <div className="space-y-2">
               {postId &&
-                mapCommentsToProps(comments, postId).map((comment) => (
+                mapCommentsToProps(commentTree, postId).map((comment) => (
                   <Comment
                     key={comment.id}
                     {...comment}
+                    postId={postId}
                     activeReplyId={activeReplyId}
                     onReplyClick={handleReplyClick}
                     onCloseReply={closeReplyForm}

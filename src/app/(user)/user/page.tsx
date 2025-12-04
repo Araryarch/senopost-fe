@@ -5,13 +5,28 @@ import { PostCard } from '@/components/post-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, Cake, Settings } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Calendar,
+  Cake,
+  Settings,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+} from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
 import { useAuth } from '@/hooks/use-auth'
 import api from '@/lib/api'
 import React, { useEffect, useState } from 'react'
 import Layouts from '@/app/Layouts/layouts'
+import { useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 
 type Post = {
   id: string
@@ -42,11 +57,15 @@ type User = {
 export default function UserProfilePage() {
   const { user: rawUser, loading } = useAuth()
   const user = rawUser as User | null
+  const queryClient = useQueryClient()
 
+  const [posts, setPosts] = useState<Post[]>([])
   const [communities, setCommunities] = useState<Community[]>([])
 
   useEffect(() => {
     if (!user) return
+
+    setPosts(user.posts || [])
 
     const uniqueIds = Array.from(
       new Set(user.posts.map((post) => post.communityId)),
@@ -79,8 +98,34 @@ export default function UserProfilePage() {
   }
 
   const username = user.username || user.email.split('@')[0]
-  const posts = user.posts || []
 
+  function handleDeletePost(postId: string): void {
+    ;(async () => {
+      try {
+        await api.delete(`/posts/${postId}`)
+
+        setPosts((prev) => prev.filter((p) => p.id !== postId))
+      } catch (error) {
+        console.error('Failed to delete post', postId, error)
+      }
+    })()
+  }
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    if (!confirm('Are you sure you want to delete this community?')) return
+
+    try {
+      await api.delete(`/communities/${communityId}`)
+      setCommunities(
+        communities.filter((community) => community.id !== communityId),
+      )
+      toast.success('Community deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['communities'] })
+    } catch (err) {
+      console.error('Failed to delete community', err)
+      toast.error('Failed to delete community. Please try again.')
+    }
+  }
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -120,14 +165,8 @@ export default function UserProfilePage() {
                 <TabsTrigger value="posts" className="rounded-full">
                   Posts
                 </TabsTrigger>
-                <TabsTrigger value="comments" className="rounded-full">
-                  Comments
-                </TabsTrigger>
                 <TabsTrigger value="community" className="rounded-full">
                   Community
-                </TabsTrigger>
-                <TabsTrigger value="upvoted" className="rounded-full">
-                  Upvoted
                 </TabsTrigger>
               </TabsList>
 
@@ -143,23 +182,16 @@ export default function UserProfilePage() {
                     <PostCard
                       username={username}
                       subpost={''}
-                      author={''}
+                      author={username}
                       upvotes={0}
                       commentCount={0}
                       timeAgo={''}
                       key={post.id}
+                      onDelete={handleDeletePost}
                       {...post}
                     />
                   ))
                 )}
-              </TabsContent>
-
-              <TabsContent value="comments">
-                <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    No comments yet
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               <TabsContent value="community" className="space-y-3">
@@ -172,28 +204,52 @@ export default function UserProfilePage() {
                 ) : (
                   communities.map((community) => (
                     <Card key={community.id}>
-                      <CardContent className="px-4">
-                        <h3 className="font-semibold">{community.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {community.description || 'No description'}
-                        </p>
+                      <CardContent className="px-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{community.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {community.description || 'No description'}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  console.log('Edit community', community.id)
+                                }
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDeleteCommunity(community.id)
+                                }
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </CardContent>
                     </Card>
                   ))
                 )}
               </TabsContent>
-
-              <TabsContent value="upvoted">
-                <Card>
-                  <CardContent className="p-8 text-center text-muted-foreground">
-                    No upvoted posts
-                  </CardContent>
-                </Card>
-              </TabsContent>
             </Tabs>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-4">

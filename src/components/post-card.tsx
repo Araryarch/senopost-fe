@@ -34,6 +34,7 @@ interface PostCardProps {
   commentCount: number
   timeAgo: string
   isCompact?: boolean
+  onDelete?: (postId: string) => void
 }
 
 export function PostCard({
@@ -47,6 +48,7 @@ export function PostCard({
   upvotes,
   commentCount,
   timeAgo,
+  onDelete,
 }: PostCardProps) {
   const queryClient = useQueryClient()
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
@@ -235,6 +237,7 @@ export function PostCard({
                     try {
                       await api.delete(`/posts/${id}`)
                       toast.success('Post deleted successfully')
+                      onDelete?.(id)
                     } catch (err) {
                       toast.error('Failed to delete post')
                       console.error(err)
@@ -244,7 +247,7 @@ export function PostCard({
                   Delete
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem>Comming Soon</DropdownMenuItem>
+              <DropdownMenuItem>Coming Soon</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

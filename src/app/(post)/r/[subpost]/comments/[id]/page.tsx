@@ -1,6 +1,6 @@
 'use client'
 
-import { Comment } from '@/components/comment'
+import { Comment, CommentProps } from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -31,19 +31,17 @@ interface CommentType {
 }
 
 export default function PostPage(props: { params: Promise<{ id: string }> }) {
-  const [id, setId] = useState<string | null>(null)
+  const [postId, setPostId] = useState<string | null>(null)
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
   const queryClient = useQueryClient()
 
   // Resolve id from params
   useEffect(() => {
-    props.params.then((p) => setId(p.id))
+    props.params.then((p) => setPostId(p.id))
   }, [props.params])
 
-  const handleReplyClick = (commentId: string) => {
-    if (!activeReplyId) setActiveReplyId(commentId)
-  }
+  const handleReplyClick = (commentId: string) => setActiveReplyId(commentId)
   const closeReplyForm = () => setActiveReplyId(null)
 
   // Fetch post
@@ -52,37 +50,53 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     isLoading: postLoading,
     error: postError,
   } = useQuery<Post | null>({
-    queryKey: ['post', id],
+    queryKey: ['post', postId],
     queryFn: async () => {
-      const res = await api.get<Post[]>('/posts', { params: { id } })
+      const res = await api.get<Post[]>('/posts', { params: { id: postId } })
       return res.data[0] || null
     },
-    enabled: !!id, // hanya fetch kalau id sudah ada
+    enabled: !!postId,
   })
+
+  console.log({ post })
 
   // Fetch comments
   const { data: comments = [], isLoading: commentsLoading } = useQuery<
     CommentType[]
   >({
-    queryKey: ['comments', id],
+    queryKey: ['comments', postId],
     queryFn: async () => {
-      const res = await api.get<CommentType[]>(`/posts/${id}/comments`)
+      const res = await api.get<CommentType[]>(`/posts/${postId}/comments`)
       return res.data
     },
-    enabled: !!id,
+    enabled: !!postId,
   })
 
-  // Mutation to post new comment
+  // Mutation to post new top-level comment
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
-      const res = await api.post(`/posts/${id}/comments`, { content })
+      const res = await api.post(`/posts/${postId}/comments`, {
+        content,
+        parentId: null,
+      })
       return res.data
     },
     onSuccess: () => {
       setNewComment('')
-      queryClient.invalidateQueries({ queryKey: ['comments', id] })
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
     },
   })
+
+  // Helper: map API comments to CommentProps (add postId to nested replies)
+  const mapCommentsToProps = (
+    comments: CommentType[],
+    postId: string,
+  ): CommentProps[] =>
+    comments.map((c) => ({
+      ...c,
+      postId,
+      replies: c.replies ? mapCommentsToProps(c.replies, postId) : [],
+    }))
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,7 +126,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           <div className="text-center p-4 text-red-500">Post not found</div>
         )}
 
-        {/* Comment Form */}
+        {/* Top-level Comment Form */}
         <div className="bg-card rounded-xl border border-border p-4 mt-4">
           <div className="flex gap-3">
             <Avatar className="h-8 w-8">
@@ -157,15 +171,16 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
             <p className="text-center text-muted-foreground">No comments yet</p>
           ) : (
             <div className="space-y-2">
-              {comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  {...comment}
-                  activeReplyId={activeReplyId}
-                  onReplyClick={handleReplyClick}
-                  onCloseReply={closeReplyForm}
-                />
-              ))}
+              {postId &&
+                mapCommentsToProps(comments, postId).map((comment) => (
+                  <Comment
+                    key={comment.id}
+                    {...comment}
+                    activeReplyId={activeReplyId}
+                    onReplyClick={handleReplyClick}
+                    onCloseReply={closeReplyForm}
+                  />
+                ))}
             </div>
           )}
         </div>

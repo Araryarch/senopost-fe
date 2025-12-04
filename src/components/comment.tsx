@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import axios from 'axios'
 
 export interface CommentProps {
   id: string
@@ -30,6 +31,7 @@ export interface CommentProps {
   activeReplyId?: string | null
   onReplyClick?: (id: string) => void
   onCloseReply?: () => void
+  postId: string // untuk API reply
 }
 
 export function Comment({
@@ -40,22 +42,21 @@ export function Comment({
   timeAgo,
   replies = [],
   depth = 0,
-
-  /** Props from parent */
   activeReplyId,
   onReplyClick,
   onCloseReply,
+  postId,
 }: CommentProps) {
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
   const [currentVotes, setCurrentVotes] = useState(upvotes)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [replyContent, setReplyContent] = useState('')
   const [repliesList, setRepliesList] = useState(replies)
+  const [replyContent, setReplyContent] = useState('')
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
 
-  const showReplyForm = activeReplyId === id
   const maxDepth = 4
   const shouldNest = depth < maxDepth
+  const showReplyForm = activeReplyId === id
 
   const handleVote = (type: 'up' | 'down') => {
     if (voteStatus === type) {
@@ -72,21 +73,20 @@ export function Comment({
 
     setIsSubmittingReply(true)
     try {
-      const newReply: CommentProps = {
-        id: `c${Date.now()}`,
-        author: 'current_user',
+      const payload = {
         content: replyContent,
-        upvotes: 0,
-        timeAgo: 'now',
-        replies: [],
-        depth: (depth || 0) + 1,
+        parentId: id, // parentId = id comment ini
       }
+
+      const res = await axios.post(`/posts/${postId}/comments`, payload)
+      const newReply: CommentProps = res.data
 
       setRepliesList([...repliesList, newReply])
       setReplyContent('')
 
-      // Close reply box via parent callback
       if (onCloseReply) onCloseReply()
+    } catch (err) {
+      console.error(err)
     } finally {
       setIsSubmittingReply(false)
     }
@@ -123,7 +123,7 @@ export function Comment({
             </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-medium">{author || 'Unknown'}</span>
+          <span className="text-sm font-medium">{author}</span>
           <span className="text-xs text-muted-foreground">• {timeAgo}</span>
         </div>
 
@@ -200,6 +200,7 @@ export function Comment({
                     key={reply.id}
                     {...reply}
                     depth={depth + 1}
+                    postId={postId}
                     activeReplyId={activeReplyId}
                     onReplyClick={onReplyClick}
                     onCloseReply={onCloseReply}

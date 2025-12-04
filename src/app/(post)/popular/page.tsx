@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import Layouts from '@/app/Layouts/layouts'
 
 export default function Page() {
   const { data: posts, isLoading } = useQuery({
@@ -28,9 +29,11 @@ export default function Page() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading posts...
-      </div>
+      <Layouts>
+        <div className="min-h-screen flex items-center justify-center">
+          Loading posts...
+        </div>
+      </Layouts>
     )
   }
 

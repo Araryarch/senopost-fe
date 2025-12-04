@@ -9,6 +9,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
+import Layouts from './Layouts/layouts'
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState<string>('best')
@@ -50,9 +51,11 @@ export default function Page() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading posts...
-      </div>
+      <Layouts>
+        <div className="min-h-screen flex items-center justify-center">
+          Loading posts...
+        </div>
+      </Layouts>
     )
   }
 

@@ -64,8 +64,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     enabled: !!postId,
   })
 
-  console.log({ post })
-
   const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
     FlatComment[]
   >({

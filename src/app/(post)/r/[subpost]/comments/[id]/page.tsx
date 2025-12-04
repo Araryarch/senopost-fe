@@ -40,7 +40,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   const { user } = useAuth()
 
-  const username = user?.name as string
+  const username = user?.username as string
 
   useEffect(() => {
     props.params.then((p) => setPostId(p.id))
@@ -89,8 +89,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
     },
   })
 
-  const author = post?.author || ''
-
   const mapCommentsToProps = (
     comments: CommentProps[],
     postId: string,
@@ -126,7 +124,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
               subpost={post.community}
               id={post.id}
               title={post.title}
-              author={post.author}
+              author={username}
               upvotes={post.upvotes}
               commentCount={post.commentCount}
               timeAgo={post.timeAgo}
@@ -187,7 +185,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
                     key={comment.id}
                     {...comment}
                     postId={postId}
-                    author={author}
+                    author={username}
                     activeReplyId={activeReplyId}
                     onReplyClick={handleReplyClick}
                     onCloseReply={closeReplyForm}

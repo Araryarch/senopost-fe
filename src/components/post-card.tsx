@@ -221,9 +221,6 @@ export function PostCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Hide</DropdownMenuItem>
-              <DropdownMenuItem>Report</DropdownMenuItem>
-              <DropdownMenuItem>Block Author</DropdownMenuItem>
               {username === author && (
                 <DropdownMenuItem
                   onClick={async () => {
@@ -239,6 +236,7 @@ export function PostCard({
                   Delete
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem>Comming Soon</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

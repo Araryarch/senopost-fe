@@ -72,7 +72,7 @@ export default function UserProfilePage() {
 
   if (loading || !user) {
     return (
-      <Layouts>
+      <Layouts withRightSidebar={false} withSidebar={false}>
         <div className="min-h-screen flex items-center justify-center">
           Loading user data...
         </div>

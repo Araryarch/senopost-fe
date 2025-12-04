@@ -48,12 +48,10 @@ export default function UserProfilePage() {
   useEffect(() => {
     if (!user) return
 
-    // Ambil unique communityId dari post
     const uniqueIds = Array.from(
       new Set(user.posts.map((post) => post.communityId)),
     )
 
-    // Fetch data community lengkap untuk setiap ID
     const fetchCommunities = async () => {
       try {
         const res = await Promise.all(

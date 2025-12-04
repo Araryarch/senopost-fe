@@ -42,7 +42,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
 
   const username = user?.name as string
 
-  // Resolve id from params
   useEffect(() => {
     props.params.then((p) => setPostId(p.id))
   }, [props.params])
@@ -50,7 +49,6 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const handleReplyClick = (commentId: string) => setActiveReplyId(commentId)
   const closeReplyForm = () => setActiveReplyId(null)
 
-  // Fetch post
   const {
     data: post,
     isLoading: postLoading,

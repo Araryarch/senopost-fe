@@ -4,17 +4,33 @@ import { RightSidebar } from '@/components/right-sidebar'
 import { Sidebar } from '@/components/sidebar'
 import React from 'react'
 
-export default function Layouts({ children }: { children: React.ReactNode }) {
+interface LayoutProps {
+  children: React.ReactNode
+  withHeader?: boolean
+  withSidebar?: boolean
+  withRightSidebar?: boolean
+}
+
+export default function Layouts({
+  children,
+  withHeader = true,
+  withSidebar = true,
+  withRightSidebar = true,
+}: LayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {withHeader && <Header />}
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide">
+        {withSidebar && <Sidebar />}
+        <main
+          className={`flex-1 min-w-0 p-4 pb-20 lg:pb-4 overflow-y-auto scrollbar-hide`}
+        >
           {children}
         </main>
-        <RightSidebar />
+
+        {withRightSidebar && <RightSidebar />}
       </div>
+
       <BottomNav />
     </div>
   )

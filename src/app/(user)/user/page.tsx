@@ -11,6 +11,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { useAuth } from '@/hooks/use-auth'
 import api from '@/lib/api'
 import React, { useEffect, useState } from 'react'
+import Layouts from '@/app/Layouts/layouts'
 
 type Post = {
   id: string
@@ -71,9 +72,11 @@ export default function UserProfilePage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading user data...
-      </div>
+      <Layouts>
+        <div className="min-h-screen flex items-center justify-center">
+          Loading user data...
+        </div>
+      </Layouts>
     )
   }
 

@@ -16,8 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import api from '@/lib/api'
-import { useQueryClient } from '@tanstack/react-query'
+
+import { useVote } from '@/hooks/use-vote'
+import { useCreateComment } from '@/hooks/use-comments'
 
 export interface CommentProps {
   replies: CommentProps[]
@@ -37,7 +38,7 @@ export interface CommentProps {
   postId?: string
 }
 
-interface FlatComment {
+export interface FlatComment {
   id: string
   author: string
   content: string
@@ -98,67 +99,31 @@ export function Comment({
   onCloseReply,
   postId,
 }: CommentProps) {
-  const queryClient = useQueryClient()
-  const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(
-    userVote || null,
-  )
-  const [currentVotes, setCurrentVotes] = useState(Number(upvotes) || 0)
+  const { voteStatus, handleVote, currentVotes } = useVote({
+    id,
+    initialUpvotes: Number(upvotes) || 0,
+    initialVoteStatus: userVote,
+    type: 'comment',
+    postId,
+  })
+
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [replyContent, setReplyContent] = useState('')
-  const [isSubmittingReply, setIsSubmittingReply] = useState(false)
   const maxDepth = 4
   const shouldNest = depth < maxDepth
   const showReplyForm = activeReplyId === id
 
-  const handleVote = async (type: 'up' | 'down') => {
-    if (!id) return
-
-    try {
-      const value = type === 'up' ? 1 : -1
-
-      if (voteStatus === type) {
-        await api.post(`/comments/${id}/votes`, { value: 0 })
-        setVoteStatus(null)
-        setCurrentVotes(currentVotes + (type === 'up' ? -1 : 1))
-      } else {
-        await api.post(`/comments/${id}/votes`, { value })
-        const prevStatus = voteStatus
-        setVoteStatus(type)
-        if (prevStatus === null) {
-          setCurrentVotes(currentVotes + value)
-        } else {
-          setCurrentVotes(currentVotes + value * 2)
-        }
-      }
-
-      // Invalidate comments query to refresh vote counts
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
-    } catch (err) {
-      console.error('Vote error:', err)
-    }
-  }
+  const { createComment, isCreating } = useCreateComment(postId || '')
 
   const handleSubmitReply = async () => {
     if (!replyContent.trim() || !postId) return
 
-    setIsSubmittingReply(true)
     try {
-      const payload = {
-        content: replyContent,
-        parentId: id,
-      }
-
-      await api.post(`/posts/${postId}/comments`, payload)
-
+      await createComment({ content: replyContent, parentId: id })
       setReplyContent('')
       if (onCloseReply) onCloseReply()
-
-      // Invalidate comments query to refresh the comment tree with new reply
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
     } catch (err) {
       console.error('Reply error:', err)
-    } finally {
-      setIsSubmittingReply(false)
     }
   }
 
@@ -330,10 +295,10 @@ export function Comment({
                   <Button
                     size="sm"
                     onClick={handleSubmitReply}
-                    disabled={!replyContent.trim() || isSubmittingReply}
+                    disabled={!replyContent.trim() || isCreating}
                   >
                     <Send className="h-3.5 w-3.5 mr-1" />
-                    {isSubmittingReply ? 'Posting...' : 'Reply'}
+                    {isCreating ? 'Posting...' : 'Reply'}
                   </Button>
                 </div>
               </div>

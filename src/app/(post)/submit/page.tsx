@@ -19,14 +19,11 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { FileText, Link2, ArrowLeft } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
 
-interface CommunityInterface {
-  id: string
-  name: string
-  members: string
-}
+import { useFollowedCommunities, Community } from '@/hooks/use-communities'
+import { useCreatePost } from '@/hooks/use-posts'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 
 export default function SubmitPage() {
   const [selectedCommunity, setSelectedCommunity] = useState('')
@@ -35,43 +32,29 @@ export default function SubmitPage() {
   const [linkUrl, setLinkUrl] = useState('')
   const [isNsfw, setIsNsfw] = useState(false)
   const [isSpoiler, setIsSpoiler] = useState(false)
-  const queryClient = useQueryClient()
+  const router = useRouter()
 
-  // Ambil daftar komunitas yang di-follow
-  const { data: followed = [] } = useQuery({
-    queryKey: ['followed'],
-    queryFn: async () => {
-      const res = await api.get('/followed')
-      return res.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
+  const { followedCommunities } = useFollowedCommunities()
+  const { createPost, isCreating } = useCreatePost()
 
-  const postMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedCommunity) return
-      const payload =
-        linkUrl !== ''
-          ? { title, url: linkUrl, nsfw: isNsfw, spoiler: isSpoiler }
-          : { title, content, nsfw: isNsfw, spoiler: isSpoiler }
-      const res = await api.post(
-        `/communities/${selectedCommunity}/posts`,
-        payload,
-      )
-      return res.data
-    },
-    onSuccess: () => {
-      setTitle('')
-      setContent('')
-      setLinkUrl('')
-      setIsNsfw(false)
-      setIsSpoiler(false)
-      queryClient.invalidateQueries({ queryKey: ['posts', selectedCommunity] })
-    },
-  })
+  const handleSubmit = async () => {
+    if (!selectedCommunity) return
 
-  const handleSubmit = () => {
-    postMutation.mutate()
+    try {
+      await createPost({
+        communityId: selectedCommunity,
+        title,
+        content: linkUrl ? undefined : content,
+        url: linkUrl || undefined,
+        nsfw: isNsfw,
+        spoiler: isSpoiler,
+      })
+
+      toast.success('Post created!')
+      router.push(`/r/${selectedCommunity}`) // Redirect is better UX than clearing form
+    } catch {
+      toast.error('Failed to create post')
+    }
   }
 
   return (
@@ -96,13 +79,11 @@ export default function SubmitPage() {
               <SelectValue placeholder="Choose a community" />
             </SelectTrigger>
             <SelectContent>
-              {followed.map((community: CommunityInterface) => (
+              {followedCommunities?.map((community: Community) => (
                 <SelectItem key={community.id} value={community.id}>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">r/{community.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {community.members}
-                    </span>
+                    {/* members not available in type */}
                   </div>
                 </SelectItem>
               ))}
@@ -205,7 +186,7 @@ export default function SubmitPage() {
             disabled={!title || !selectedCommunity}
             onClick={handleSubmit}
           >
-            {postMutation.isPending ? 'Posting...' : 'Post'}
+            {isCreating ? 'Posting...' : 'Post'}
           </Button>
         </div>
       </div>

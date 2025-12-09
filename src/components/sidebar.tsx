@@ -24,35 +24,19 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
 
 const mainLinks = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Flame, label: 'Popular', href: '/popular' },
 ]
 
-interface CommunityInterface {
-  id: string
-  name: string
-  description: string
-  creatorId: string
-  createdAt: string
-  updatedAt: string
-}
+import { useCommunities, Community } from '@/hooks/use-communities'
 
 export function Sidebar() {
   const [communitiesOpen, setCommunitiesOpen] = useState(true)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  const { data: communities = [] } = useQuery({
-    queryKey: ['communities'],
-    queryFn: async () => {
-      const res = await api.get('/communities')
-      return res.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
+  const { communities } = useCommunities()
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -147,28 +131,26 @@ export function Sidebar() {
                     </Button>
                   </Link>
 
-                  {communities.map(
-                    (community: CommunityInterface, idx: number) => (
-                      <Link key={idx} href={`/r/${community.id}`}>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start gap-3 h-9 px-4 hover:bg-secondary rounded-lg text-sm"
-                        >
-                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-primary-foreground">
-                              {community.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex items-start first-letter:uppercase!">
-                            r/
-                            <span className="font-medium first-letter:uppercase">
-                              {community.name}
-                            </span>
-                          </div>
-                        </Button>
-                      </Link>
-                    ),
-                  )}
+                  {communities.map((community: Community, idx: number) => (
+                    <Link key={idx} href={`/r/${community.id}`}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-3 h-9 px-4 hover:bg-secondary rounded-lg text-sm"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-primary-foreground">
+                            {community.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-start first-letter:uppercase!">
+                          r/
+                          <span className="font-medium first-letter:uppercase">
+                            {community.name}
+                          </span>
+                        </div>
+                      </Button>
+                    </Link>
+                  ))}
                 </CollapsibleContent>
               </Collapsible>
             </>

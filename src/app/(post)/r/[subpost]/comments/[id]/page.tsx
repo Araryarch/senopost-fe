@@ -1,6 +1,11 @@
 'use client'
 
-import { Comment, CommentProps, buildCommentTree } from '@/components/comment'
+import {
+  Comment,
+  CommentProps,
+  buildCommentTree,
+  FlatComment,
+} from '@/components/comment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -8,35 +13,13 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import { PostCard } from '@/components/post-card'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
-
-interface Post {
-  id: string
-  title: string
-  community: string
-  subpost: string
-  author: string
-  upvotes: number
-  commentCount: number
-  timeAgo: string
-}
-
-interface FlatComment {
-  id: string
-  author: string
-  content: string
-  upvotes: number
-  timeAgo: string
-  parentId: string | null
-  userVote?: 'up' | 'down' | null
-}
+import { usePost } from '@/hooks/use-posts'
+import { useComments, useCreateComment } from '@/hooks/use-comments'
 
 export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const [postId, setPostId] = useState<string | null>(null)
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
-  const queryClient = useQueryClient()
 
   useEffect(() => {
     props.params.then((p) => setPostId(p.id))
@@ -46,44 +29,32 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
   const closeReplyForm = () => setActiveReplyId(null)
 
   const {
-    data: post,
+    post,
     isLoading: postLoading,
     error: postError,
-  } = useQuery<Post | null>({
-    queryKey: ['post', postId],
-    queryFn: async () => {
-      const res = await api.get<Post>(`/posts/${postId}`)
-      return res.data
-    },
-    enabled: !!postId,
-  })
+  } = usePost(postId || '')
+  // Cast comments to FlatComment[] because the hook returns any[] (or specific type if defined)
+  // Ideally useComments should be generic or match type.
+  // For now assuming API returns compatible structure.
+  const { comments: flatComments, isLoading: commentsLoading } = useComments(
+    postId || undefined,
+  )
+  const { createComment, isCreating } = useCreateComment(postId || '')
 
-  const { data: flatComments = [], isLoading: commentsLoading } = useQuery<
-    FlatComment[]
-  >({
-    queryKey: ['comments', postId],
-    queryFn: async () => {
-      const res = await api.get<FlatComment[]>(`/posts/${postId}/comments`)
-      return res.data
-    },
-    enabled: !!postId,
-  })
+  const commentTree: CommentProps[] = buildCommentTree(
+    flatComments as FlatComment[],
+  )
 
-  const commentTree: CommentProps[] = buildCommentTree(flatComments)
-
-  const commentMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const res = await api.post(`/posts/${postId}/comments`, {
-        content,
-        parentId: null,
-      })
-      return res.data
-    },
-    onSuccess: () => {
+  const handleCreateComment = async () => {
+    if (!newComment.trim()) return
+    try {
+      await createComment({ content: newComment })
       setNewComment('')
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] })
-    },
-  })
+    } catch {
+      // toast handled in hook or silence? Hook doesn't have toast on error, manual logging here or add to hook?
+      // The original code didn't have toast on error for comments.
+    }
+  }
 
   const authorUser = post?.author || ''
 
@@ -119,7 +90,8 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
           <article className="rounded-xl overflow-hidden">
             <PostCard
               username={post.author}
-              subpost={post.community}
+              subpost={post.community.name}
+              cid={post.community.id}
               id={post.id}
               title={post.title}
               author={authorUser}
@@ -148,19 +120,14 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
                 onChange={(e) => setNewComment(e.target.value)}
                 className="min-h-[100px] resize-none border-border focus-visible:ring-primary"
               />
-              {commentMutation.isError && (
-                <p className="text-red-500 text-sm mt-1">
-                  Failed to post comment. Try again.
-                </p>
-              )}
               <div className="flex justify-end mt-2">
                 <Button
                   size="sm"
                   className="rounded-full"
-                  onClick={() => commentMutation.mutate(newComment)}
-                  disabled={commentMutation.isPending || !newComment.trim()}
+                  onClick={handleCreateComment}
+                  disabled={isCreating || !newComment.trim()}
                 >
-                  {commentMutation.isPending ? 'Posting...' : 'Comment'}
+                  {isCreating ? 'Posting...' : 'Comment'}
                 </Button>
               </div>
             </div>

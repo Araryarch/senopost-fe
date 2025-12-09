@@ -7,10 +7,9 @@ import { PostCard } from '@/components/post-card'
 import { FeedTabs } from '@/components/feed-tabs'
 import { BottomNav } from '@/components/bottom-nav'
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
 import Layouts from './Layouts/layouts'
 import { useAuth } from '@/hooks/use-auth'
+import { usePosts } from '@/hooks/use-posts'
 
 export default function Page() {
   const { user } = useAuth()
@@ -19,14 +18,7 @@ export default function Page() {
 
   const [activeTab, setActiveTab] = useState<string>('best')
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ['posts'],
-    queryFn: async () => {
-      const res = await api.get('/posts')
-      console.log(res.data)
-      return res.data
-    },
-  })
+  const { posts, isLoading } = usePosts()
 
   const filteredPosts = useMemo(() => {
     if (!posts || posts.length === 0) return []
@@ -86,7 +78,7 @@ export default function Page() {
                   cid={post.community.id}
                   title={post.title}
                   content={post.content}
-                  subpost={post.community}
+                  subpost={post.community.name}
                   author={post.author}
                   upvotes={post.upvotes || 0}
                   commentCount={post.commentCount || 0}

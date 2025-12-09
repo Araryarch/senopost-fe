@@ -16,11 +16,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface PostCardProps {
   id: string
@@ -37,6 +35,8 @@ interface PostCardProps {
   onDelete?: (postId: string) => void
 }
 
+import { useVote } from '@/hooks/use-vote'
+
 export function PostCard({
   id,
   title,
@@ -50,49 +50,11 @@ export function PostCard({
   timeAgo,
   onDelete,
 }: PostCardProps) {
-  const queryClient = useQueryClient()
-  const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(null)
-  const [voteCount, setVoteCount] = useState(0)
-
-  const handleVote = async (type: 'up' | 'down') => {
-    const previousVoteStatus = voteStatus
-    const previousVoteCount = voteCount
-
-    try {
-      let newVoteStatus: 'up' | 'down' | null = type
-      let voteDelta = 0
-
-      if (voteStatus === null) {
-        voteDelta = type === 'up' ? 1 : -1
-        newVoteStatus = type
-      } else if (voteStatus === type) {
-        voteDelta = type === 'up' ? -1 : 1
-        newVoteStatus = null
-      } else {
-        voteDelta = type === 'up' ? 2 : -2
-        newVoteStatus = type
-      }
-
-      setVoteStatus(newVoteStatus)
-      setVoteCount(previousVoteCount + voteDelta)
-
-      let value = 0
-      if (newVoteStatus === 'up') value = 1
-      else if (newVoteStatus === 'down') value = -1
-      else value = 0
-
-      await api.post(`/posts/${id}/votes`, { value })
-      toast.success('add 1 votes success')
-
-      // Invalidate post queries to refresh vote counts
-      queryClient.invalidateQueries({ queryKey: ['posts'] })
-      queryClient.invalidateQueries({ queryKey: ['post', id] })
-    } catch (err) {
-      console.error('Failed to vote:', err)
-      setVoteStatus(previousVoteStatus)
-      setVoteCount(previousVoteCount)
-    }
-  }
+  const { voteStatus, handleVote, currentVotes } = useVote({
+    id,
+    initialUpvotes: upvotes,
+    type: 'post',
+  })
 
   const formatVotes = (votes: number) => {
     if (votes >= 1000) return (votes / 1000).toFixed(1) + 'k'
@@ -100,132 +62,162 @@ export function PostCard({
     return votes.toString()
   }
 
-  const displayVotes = upvotes + voteCount
-
-  const voteColor =
-    voteStatus === 'up'
-      ? 'bg-orange-500/10'
-      : voteStatus === 'down'
-        ? 'bg-blue-500/10'
-        : ''
-
   return (
-    <article className="bg-card rounded-xl border border-border hover:border-muted-foreground/30 transition-colors mb-3">
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Link
-            href={`/r/${cid}`}
-            className="flex items-center gap-2 hover:underline"
-          >
-            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-xs font-bold text-primary-foreground">
-                {subpost.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <span className="text-xs font-semibold">r/{subpost}</span>
-          </Link>
-          <span className="text-xs text-muted-foreground">•</span>
-          <span className="text-xs text-muted-foreground">{timeAgo}</span>
+    <article className="bg-card hover:bg-neutral-50 dark:hover:bg-neutral-900 border border-border rounded-md cursor-pointer transition-colors mb-3 flex overflow-hidden">
+      {/* Vote Side - Desktop */}
+      <div className="hidden sm:flex flex-col items-center p-2 bg-neutral-50/50 dark:bg-neutral-900/10 w-12 shrink-0 border-r border-border/50">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 rounded-sm hover:bg-transparent hover:text-orange-500"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleVote('up')
+          }}
+        >
+          <ArrowBigUp
+            className={cn(
+              'h-6 w-6',
+              voteStatus === 'up' && 'fill-orange-500 text-orange-500',
+            )}
+          />
+        </Button>
+        <span
+          className={cn(
+            'text-xs font-bold my-1',
+            voteStatus === 'up' && 'text-orange-500',
+            voteStatus === 'down' && 'text-blue-500',
+          )}
+        >
+          {formatVotes(currentVotes)}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 rounded-sm hover:bg-transparent hover:text-blue-500"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleVote('down')
+          }}
+        >
+          <ArrowBigDown
+            className={cn(
+              'h-6 w-6',
+              voteStatus === 'down' && 'fill-blue-500 text-blue-500',
+            )}
+          />
+        </Button>
+      </div>
+
+      <div className="flex-1 p-2 sm:p-3 pb-1">
+        {/* Mobile Header (Subreddit + User + Time) */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          {subpost && (
+            <Link
+              href={`/r/${cid}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-bold text-foreground hover:underline flex items-center gap-1"
+            >
+              {subpost.startsWith('r/') ? subpost : `mid/${subpost}`}
+            </Link>
+          )}
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            Posted by{' '}
+            <span className="hover:underline cursor-pointer">u/{author}</span>
+          </span>
+          <span>•</span>
+          <span>{timeAgo}</span>
         </div>
 
         <Link href={`/r/${subpost}/comments/${id}`}>
-          <h3 className="text-lg font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
+          <h3 className="text-lg font-medium leading-6 -mt-1 mb-2 text-foreground group-hover:text-foreground">
             {title}
           </h3>
         </Link>
 
         {content && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+          <div className="text-sm text-foreground/90 mb-3 line-clamp-3">
             {content}
-          </p>
+          </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 bg-secondary">
-          {/* Vote Buttons */}
-          <div
-            className={cn(
-              'flex items-center bg-secondary rounded-full transition-colors',
-              voteColor,
-            )}
-          >
+        {/* Actions Bar */}
+        <div className="flex items-center gap-1 -ml-2">
+          {/* Mobile Vote (Horizontal) */}
+          <div className="flex sm:hidden items-center border border-border rounded-full p-1 bg-secondary/50 mr-2">
             <Button
               variant="ghost"
-              size="sm"
-              className={cn(
-                'h-8 px-2 rounded-l-full hover:bg-orange-500/20',
-                voteStatus === 'up' && 'text-orange-500',
-              )}
-              onClick={() => handleVote('up')}
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleVote('up')
+              }}
             >
               <ArrowBigUp
-                className={cn('h-5 w-5', voteStatus === 'up' && 'fill-current')}
+                className={cn(
+                  'h-5 w-5',
+                  voteStatus === 'up' && 'fill-orange-500 text-orange-500',
+                )}
               />
             </Button>
-            <span
-              className={cn(
-                'text-xs font-semibold min-w-[2rem] text-center',
-                voteStatus === 'up' && 'text-orange-500',
-                voteStatus === 'down' && 'text-blue-500',
-              )}
-            >
-              {formatVotes(displayVotes)}
+            <span className="text-xs font-bold px-1">
+              {formatVotes(currentVotes)}
             </span>
             <Button
               variant="ghost"
-              size="sm"
-              className={cn(
-                'h-8 px-2 rounded-r-full hover:bg-blue-500/20',
-                voteStatus === 'down' && 'text-blue-500',
-              )}
-              onClick={() => handleVote('down')}
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleVote('down')
+              }}
             >
               <ArrowBigDown
                 className={cn(
                   'h-5 w-5',
-                  voteStatus === 'down' && 'fill-current',
+                  voteStatus === 'down' && 'fill-blue-500 text-blue-500',
                 )}
               />
             </Button>
           </div>
 
-          {/* Comments */}
           <Link href={`/r/${subpost}/comments/${id}`}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1 rounded-full hover:bg-secondary"
+              className="h-8 gap-2 text-muted-foreground hover:bg-secondary/80 rounded-sm px-2"
             >
               <MessageSquare className="h-4 w-4" />
-              <span className="text-xs font-medium">
-                {Number(commentCount) || 0}
-              </span>
+              <span className="text-xs font-bold">{commentCount} Comments</span>
             </Button>
           </Link>
 
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 gap-1 rounded-full hover:bg-secondary"
+            className="h-8 gap-2 text-muted-foreground hover:bg-secondary/80 rounded-sm px-2"
           >
             <Share2 className="h-4 w-4" />
-            <span className="text-xs font-medium hidden sm:inline">Share</span>
+            <span className="text-xs font-bold">Share</span>
           </Button>
 
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 rounded-full hover:bg-secondary hidden sm:flex"
+            className="h-8 gap-2 text-muted-foreground hover:bg-secondary/80 rounded-sm px-2 hidden sm:flex"
           >
             <Bookmark className="h-4 w-4" />
+            <span className="text-xs font-bold">Save</span>
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-8 rounded-full hover:bg-secondary ml-auto"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:bg-secondary/80 rounded-sm ml-auto sm:ml-0"
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -233,21 +225,21 @@ export function PostCard({
             <DropdownMenuContent align="end">
               {username === author && (
                 <DropdownMenuItem
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.stopPropagation()
                     try {
                       await api.delete(`/posts/${id}`)
                       toast.success('Post deleted successfully')
                       onDelete?.(id)
-                    } catch (err) {
+                    } catch {
                       toast.error('Failed to delete post')
-                      console.error(err)
                     }
                   }}
                 >
                   Delete
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem>Coming Soon</DropdownMenuItem>
+              <DropdownMenuItem>Report</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

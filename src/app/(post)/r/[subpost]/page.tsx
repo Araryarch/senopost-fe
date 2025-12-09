@@ -1,35 +1,14 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Calendar, PersonStandingIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { BottomNav } from '@/components/bottom-nav'
-import api from '@/lib/api'
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { PostCard } from '@/components/post-card'
-
-interface Community {
-  id: string
-  name: string
-  description: string
-  author?: string
-  createdAt?: string
-}
-
-interface Post {
-  id: string
-  title: string
-  content?: string
-  url?: string
-  author: string
-  createdAt: string
-  upvotes?: number
-  commentCount?: number
-}
 
 function CommunitySkeleton() {
   return (
@@ -55,57 +34,37 @@ function CommunitySkeleton() {
   )
 }
 
+import {
+  useCommunity,
+  useCommunityPosts,
+  useFollowedCommunities,
+  useJoinCommunity,
+} from '@/hooks/use-communities'
+
 export default function CommunityPage(props: {
   params: Promise<{ subpost: string }>
 }) {
   const [subpostValue, setSubpostValue] = useState<string | null>(null)
-  const [loadingJoin, setLoadingJoin] = useState(false)
-  const [joined, setJoined] = useState(false)
 
   // Resolve subpost Promise
   useEffect(() => {
     props.params.then((p) => setSubpostValue(p.subpost))
   }, [props.params])
 
-  // Fetch community info
   const {
-    data: community,
+    community,
     isLoading: communityLoading,
     isError: communityError,
-  } = useQuery<Community>({
-    queryKey: ['community', subpostValue],
-    queryFn: async () => {
-      const res = await api.get(`/communities/${subpostValue}`)
-      return res.data
-    },
-    enabled: !!subpostValue,
-    retry: 3,
-    retryDelay: 2000,
-  })
-
+  } = useCommunity(subpostValue)
   const {
-    data: posts = [],
+    posts,
     isLoading: postsLoading,
     isError: postsError,
-  } = useQuery<Post[]>({
-    queryKey: ['posts', subpostValue],
-    queryFn: async () => {
-      const res = await api.get<{ posts: Post[] }>(
-        `/communities/${subpostValue}/posts`,
-      )
-      return Array.isArray(res.data.posts) ? res.data.posts : []
-    },
-    enabled: !!community,
-  })
+  } = useCommunityPosts(subpostValue)
+  const { followedCommunities } = useFollowedCommunities()
+  const { joinCommunity, isJoining: loadingJoin } = useJoinCommunity()
 
-  const { data: followedCommunities } = useQuery<Community[]>({
-    queryKey: ['followedCommunities'],
-    queryFn: async () => {
-      const res = await api.get<Community[]>('/followed')
-      return res.data
-    },
-    enabled: !!community,
-  })
+  const [joined, setJoined] = useState(false)
 
   useEffect(() => {
     if (community && followedCommunities) {
@@ -115,20 +74,19 @@ export default function CommunityPage(props: {
 
   const handleJoinToggle = async () => {
     if (!community) return
-    setLoadingJoin(true)
+    // setJoined handled by effect on invalidation, but optimistic update is good U
+    // For now rely on hook's invalidation which re-fetches followedCommunities
+
     try {
       if (!joined) {
-        await api.post('/follow', { communityId: community.id })
+        await joinCommunity(community.id)
         toast.success(`Joined r/${community.name}`)
-        setJoined(true)
+        // setJoined(true) // Should be updated by effect
       } else {
         toast.error('Leave community not implemented')
       }
-    } catch (err) {
-      console.error(err)
+    } catch {
       toast.error('Failed to join community')
-    } finally {
-      setLoadingJoin(false)
     }
   }
 

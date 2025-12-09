@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -26,8 +27,8 @@
   --accent: oklch(0.95 0 0); /* Hover states */
   --accent-foreground: oklch(0.145 0 0);
   --destructive: oklch(0.63 0.22 29);
-  --border: oklch(0.90 0 0); /* #ccc */
-  --input: oklch(0.90 0 0);
+  --border: oklch(0.9 0 0); /* #ccc */
+  --input: oklch(0.9 0 0);
   --ring: oklch(0.57 0.23 28.5);
   --chart-1: oklch(0.57 0.23 28.5);
   --sidebar: oklch(1 0 0);
@@ -36,12 +37,14 @@
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.95 0 0);
   --sidebar-accent-foreground: oklch(0.145 0 0);
-  --sidebar-border: oklch(0.90 0 0);
+  --sidebar-border: oklch(0.9 0 0);
   --sidebar-ring: oklch(0.57 0.23 28.5);
 }
 
 .dark {
-  --background: oklch(0.13 0 0); /* #0b1416 - Darkest Gray (Reddit Dark) or #1A1A1B */
+  --background: oklch(
+    0.13 0 0
+  ); /* #0b1416 - Darkest Gray (Reddit Dark) or #1A1A1B */
   --foreground: oklch(0.9 0 0); /* #d7dadc */
   --card: oklch(0.16 0 0); /* #1A1A1B */
   --card-foreground: oklch(0.9 0 0);

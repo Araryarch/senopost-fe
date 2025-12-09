@@ -17,19 +17,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { FileText, Link2, ArrowLeft } from 'lucide-react'
+import { FileText, ArrowLeft } from 'lucide-react'
 import { BottomNav } from '@/components/bottom-nav'
 
 import { useFollowedCommunities, Community } from '@/hooks/use-communities'
 import { useCreatePost } from '@/hooks/use-posts'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { MarkdownRenderer } from '@/components/markdown-renderer'
 
 export default function SubmitPage() {
   const [selectedCommunity, setSelectedCommunity] = useState('')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [linkUrl, setLinkUrl] = useState('')
   const [isNsfw, setIsNsfw] = useState(false)
   const [isSpoiler, setIsSpoiler] = useState(false)
   const router = useRouter()
@@ -44,8 +44,7 @@ export default function SubmitPage() {
       await createPost({
         communityId: selectedCommunity,
         title,
-        content: linkUrl ? undefined : content,
-        url: linkUrl || undefined,
+        content,
         nsfw: isNsfw,
         spoiler: isSpoiler,
       })
@@ -93,25 +92,25 @@ export default function SubmitPage() {
 
         <Card>
           <CardContent className="p-0">
-            <Tabs defaultValue="post" className="w-full">
+            <Tabs defaultValue="write" className="w-full">
               <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
                 <TabsTrigger
-                  value="post"
+                  value="write"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 px-6 py-3"
                 >
                   <FileText className="h-4 w-4" />
-                  Post
+                  Write
                 </TabsTrigger>
                 <TabsTrigger
-                  value="link"
+                  value="preview"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent gap-2 px-6 py-3"
                 >
-                  <Link2 className="h-4 w-4" />
-                  Link
+                  <FileText className="h-4 w-4" />
+                  Preview
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="post" className="p-4 space-y-4">
+              <div className="p-4 space-y-4">
                 <Input
                   placeholder="Title"
                   value={title}
@@ -119,35 +118,28 @@ export default function SubmitPage() {
                   className="text-lg font-medium"
                   maxLength={300}
                 />
-                <p className="text-xs text-muted-foreground text-right">
-                  {title.length}/300
-                </p>
-                <Textarea
-                  placeholder="Text (optional)"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[200px] resize-none"
-                />
-              </TabsContent>
 
-              <TabsContent value="link" className="p-4 space-y-4">
-                <Input
-                  placeholder="Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-lg font-medium"
-                  maxLength={300}
-                />
-                <p className="text-xs text-muted-foreground text-right">
-                  {title.length}/300
-                </p>
-                <Input
-                  placeholder="URL"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  type="url"
-                />
-              </TabsContent>
+                <TabsContent value="write" className="mt-0 space-y-2">
+                  <Textarea
+                    placeholder="Text (markdown supported)"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="min-h-[300px] resize-y font-mono text-sm"
+                  />
+                </TabsContent>
+
+                <TabsContent value="preview" className="mt-0">
+                  <div className="min-h-[300px] border border-border rounded-md p-4 bg-muted/20">
+                    {content.trim() ? (
+                      <MarkdownRenderer content={content} />
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">
+                        Nothing to preview
+                      </p>
+                    )}
+                  </div>
+                </TabsContent>
+              </div>
             </Tabs>
           </CardContent>
         </Card>

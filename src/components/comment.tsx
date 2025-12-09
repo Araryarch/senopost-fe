@@ -5,20 +5,33 @@ import {
   ArrowBigUp,
   ArrowBigDown,
   MessageSquare,
-  Share2,
   MoreHorizontal,
   ChevronDown,
   ChevronUp,
   Send,
   X,
+  Pencil,
+  Trash,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 import { useVote } from '@/hooks/use-vote'
-import { useCreateComment } from '@/hooks/use-comments'
+import {
+  useCreateComment,
+  useDeleteComment,
+  useEditComment,
+} from '@/hooks/use-comments'
+import { useAuth } from '@/hooks/use-auth'
+import { toast } from 'react-hot-toast'
 
 export interface CommentProps {
   replies: CommentProps[]
@@ -107,13 +120,46 @@ export function Comment({
     postId,
   })
 
+  // Auth & Permissions
+  const { user } = useAuth()
+  const isAuthor = user?.username === author || user?.name === author
+
+  // Mutations
+  const { createComment, isCreating } = useCreateComment(postId || '')
+  const { deleteComment } = useDeleteComment(postId || '')
+  const { editComment, isEditing: isSubmittingEdit } = useEditComment(
+    postId || '',
+  )
+
+  // Local State
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [replyContent, setReplyContent] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(content)
+
   const maxDepth = 4
   const shouldNest = depth < maxDepth
   const showReplyForm = activeReplyId === id
 
-  const { createComment, isCreating } = useCreateComment(postId || '')
+  const handleEdit = async () => {
+    if (!editContent.trim()) return
+    try {
+      await editComment({ commentId: id, content: editContent })
+      setIsEditing(false)
+      toast.success('Comment updated')
+    } catch {
+      toast.error('Failed to update comment')
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      await deleteComment(id)
+      toast.success('Comment deleted')
+    } catch {
+      toast.error('Failed to delete comment')
+    }
+  }
 
   const handleSubmitReply = async () => {
     if (!replyContent.trim() || !postId) return
@@ -165,7 +211,36 @@ export function Comment({
         {!isCollapsed && (
           <>
             <div className="ml-7 mb-2">
-              <p className="text-sm leading-relaxed">{content}</p>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[80px]"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleEdit}
+                      disabled={isSubmittingEdit || !editContent.trim()}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setIsEditing(false)
+                        setEditContent(content)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed">{content}</p>
+              )}
             </div>
 
             {/* Actions - Bottom nav style similar to post card */}
@@ -235,24 +310,33 @@ export function Comment({
                 Reply
               </Button>
 
-              {/* Share */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1 rounded-full hover:bg-secondary text-xs"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Share
-              </Button>
-
-              {/* More */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 rounded-full hover:bg-secondary ml-auto"
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </Button>
+              {/* More - Only for author */}
+              {isAuthor && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 rounded-full hover:bg-secondary ml-auto"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleDelete}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             {/* Nested Replies - recursively render child comments */}

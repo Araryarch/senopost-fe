@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { MarkdownRenderer } from './markdown-renderer'
 
 interface PostCardProps {
   id: string
@@ -138,7 +139,7 @@ export function PostCard({
 
         {content && (
           <div className="text-sm text-foreground/90 mb-3 line-clamp-3">
-            {content}
+            <MarkdownRenderer content={content} />
           </div>
         )}
 

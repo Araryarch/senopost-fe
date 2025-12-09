@@ -94,6 +94,7 @@ export default function PostPage(props: { params: Promise<{ id: string }> }) {
               cid={post.community.id}
               id={post.id}
               title={post.title}
+              content={post.content || post.url || ''}
               author={authorUser}
               upvotes={post.upvotes}
               commentCount={post.commentCount}

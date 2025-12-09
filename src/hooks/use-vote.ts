@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { useSession } from 'next-auth/react'
 
 interface UseVoteProps {
   id: string
@@ -19,12 +20,24 @@ export function useVote({
   postId,
 }: UseVoteProps) {
   const queryClient = useQueryClient()
+  const { status } = useSession()
   const [voteStatus, setVoteStatus] = useState<'up' | 'down' | null>(
     initialVoteStatus,
   )
   const [voteCount, setVoteCount] = useState(0)
 
+  // Sync local state when server data updates (e.g. after invalidation)
+  useEffect(() => {
+    setVoteStatus(initialVoteStatus)
+    setVoteCount(0)
+  }, [initialUpvotes, initialVoteStatus])
+
   const handleVote = async (voteType: 'up' | 'down') => {
+    if (status !== 'authenticated') {
+      toast.error('You must be logged in to vote')
+      return
+    }
+
     const previousVoteStatus = voteStatus
     const previousVoteCount = voteCount
 
@@ -39,6 +52,7 @@ export function useVote({
         voteDelta = voteType === 'up' ? -1 : 1
         newVoteStatus = null
       } else {
+        // switching vote
         voteDelta = voteType === 'up' ? 2 : -2
         newVoteStatus = voteType
       }

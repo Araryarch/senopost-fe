@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useSession } from 'next-auth/react'
@@ -45,7 +44,7 @@ export function useAuth() {
           ...(session?.user as Record<string, unknown>),
           ...apiUser,
         })
-      } catch (e) {
+      } catch {
         setUser(
           session?.user ? (session.user as Record<string, unknown>) : null,
         )
